@@ -39,6 +39,12 @@ class MasterCustomerController extends Controller
         return view('master-customers', compact('customers'));
     }
 
+    public function showWeb($id)
+    {
+        $customer = MasterCustomer::with('vehicles')->findOrFail($id);
+        return view('master-customers-show', compact('customer'));
+    }
+
     public function show($id)
     {
         $customer = MasterCustomer::with('vehicles')->findOrFail($id);

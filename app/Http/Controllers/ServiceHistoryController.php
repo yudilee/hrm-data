@@ -1,0 +1,112 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ServiceHistory;
+use Illuminate\Http\Request;
+
+class ServiceHistoryController extends Controller
+{
+    public function index()
+    {
+        return view('service-history.index');
+    }
+
+    public function search(Request $request)
+    {
+        // Require at least one to search
+        if (!$request->filled('cnpol') && !$request->filled('chasn')) {
+            return response()->json(['error' => 'Please provide Police No or Chassis No'], 400);
+        }
+
+        $query = ServiceHistory::query();
+
+        if ($request->filled('cnpol')) {
+            $query->where('CNPOL', $request->cnpol);
+        }
+
+        if ($request->filled('chasn')) {
+            $query->where('CHASN', $request->chasn);
+        }
+
+        // Return a max of 100 historical records for performance
+        $histories = $query->orderBy('DINVN', 'desc')->take(100)->get();
+
+        if ($histories->isEmpty()) {
+            return response()->json(['error' => 'No vehicle history found'], 404);
+        }
+
+        // The first row will provide the common vehicle details
+        $vehicle = $histories->first();
+
+        return response()->json([
+            'vehicle' => [
+                'CNPOL' => $vehicle->CNPOL,
+                'CHASN' => $vehicle->CHASN,
+                'CENGN' => $vehicle->CENGN,
+                'ETYPE' => $vehicle->ETYPE,
+                'DSTNK' => $vehicle->DSTNK ? \Carbon\Carbon::parse($vehicle->DSTNK)->format('d/m/Y') : '',
+                'ENAME' => $vehicle->ENAME,
+                'EADDR' => $vehicle->EADDR,
+                'ECITY' => $vehicle->ECITY,
+                'EPHON' => $vehicle->EPHON,
+            ],
+            'invoices' => $histories->map(function ($row) {
+                return [
+                    'id' => $row->id,
+                    'CJOBN' => $row->CJOBN,
+                    'CINVN' => $row->CINVN,
+                    'DRECV' => $row->DRECV ? \Carbon\Carbon::parse($row->DRECV)->format('d/m/Y') : '',
+                    'DINVN' => $row->DINVN ? \Carbon\Carbon::parse($row->DINVN)->format('d/m/Y') : '',
+                    'ALBRS' => $row->ALBRS,
+                    'ASPTS' => $row->ASPTS,
+                    'ASSPS' => $row->ASSPS,
+                    'ASUBS' => $row->ASUBS,
+                    'AOTHS1' => $row->AOTHS1,
+                    'AOTHS2' => $row->AOTHS2,
+                    'SUBTOTAL' => $row->ASUBS, // Use the pre-calculated subtotal from FoxPro (ASUBS)
+                    'ATAXS' => $row->ATAXS,
+                    'AMTRS' => $row->AMTRS,
+                    'AMOUNT' => ($row->ASUBS + $row->ATAXS + $row->AMTRS) - $row->DISC,
+                    'EKMPOS' => $row->EKMPOS,
+                ];
+            })
+        ]);
+    }
+
+    public function details(Request $request)
+    {
+        $id = $request->id;
+        if (!$id) {
+            return response()->json(['error' => 'Missing Invoice ID'], 400);
+        }
+
+        $history = ServiceHistory::with(['labours', 'parts'])->find($id);
+
+        if (!$history) {
+            return response()->json(['error' => 'History not found'], 404);
+        }
+
+        return response()->json([
+            'labours' => $history->labours->map(function ($labour) {
+                return [
+                    'CDJOB' => $labour->CDJOB,
+                    'EMJOB' => $labour->EMJOB,
+                    'QHOUR' => $labour->QHOUR,
+                    'NET' => $labour->NET,
+                    'TAKEN' => $labour->TAKEN,
+                ];
+            }),
+            'parts' => $history->parts->map(function ($part) {
+                return [
+                    'CPART' => $part->CPART,
+                    'EDESC' => $part->EDESC,
+                    'QRECV' => $part->QRECV,
+                    'ASPPRC' => $part->ASPPRC,
+                    'AFIFO' => $part->AFIFO,
+                    'CVCHR' => $part->CVCHR,
+                ];
+            })
+        ]);
+    }
+}

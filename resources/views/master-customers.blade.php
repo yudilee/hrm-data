@@ -1,275 +1,253 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-gray-50">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Master Customers - RTS Repository</title>
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        [x-cloak] { display: none !important; }
-    </style>
-</head>
-<body class="h-full">
-<div class="min-h-full">
+@extends('layouts.app')
 
-    <!-- Header -->
-    <header class="bg-indigo-600 pb-24">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div class="flex h-16 items-center justify-between border-b border-indigo-500 border-opacity-25">
-                <div class="flex items-center gap-6">
-                    <div class="flex items-center">
-                        <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.492-3.053c.217-.266.35-.595.394-.945l.44-3.52 3.14-3.14a2.652 2.652 0 00-3.75-3.75l-3.14 3.14-3.52.44c-.35.044-.68.177-.945.394l-3.053 2.492.001.001M11.42 15.17L7.5 19.5 4.5 21 3 19.5l1.5-3 4.33-3.92M8.25 15.75l-1.5 1.5M10.5 13.5l-2.25 2.25"/>
-                        </svg>
-                        <span class="ml-3 text-xl font-bold text-white tracking-tight">RTS Labour Repository</span>
-                    </div>
-                    <nav class="flex space-x-4">
-                        <a href="{{ route('home') }}" class="text-indigo-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Labour Search</a>
-                        <a href="{{ route('master-vehicles.index') }}" class="text-indigo-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Master Vehicles</a>
-                        <a href="{{ route('master-customers.index') }}" class="bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium">Master Customers</a>
-                    </nav>
-                </div>
+@section('title', 'Master Customers - RTS Master Data System')
+
+@section('breadcrumb')
+<li class="inline-flex items-center">
+    <svg class="w-3 h-3 text-gray-400 mx-1" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+    </svg>
+    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Master Customers</span>
+</li>
+@endsection
+
+@section('content')
+<div class="space-y-6" x-data="{ selected: null }">
+    <!-- Header/Search Section -->
+    <div class="rounded-2xl bg-white dark:bg-slate-800 p-8 shadow-sm ring-1 ring-gray-200 dark:ring-slate-700">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Master Customers</h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Search and manage customer profiles and their associated vehicles.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button class="inline-flex items-center rounded-xl bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-slate-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a1 1 0 001 1h10a1 1 0 001-1v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Export
+                </button>
+                <button class="inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xl shadow-emerald-200 hover:bg-emerald-500 transition-all active:scale-95">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                    </svg>
+                    Add Customer
+                </button>
             </div>
         </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="-mt-24 pb-8">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-
-            <!-- Search & Filter Section -->
-            <div class="relative rounded-lg bg-white shadow-xl ring-1 ring-gray-900/5 sm:rounded-xl p-8 mb-6">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:tracking-tight">Master Customers</h2>
-                    <p class="mt-2 text-sm text-gray-500">Search by name, customer ID, email, or location. Click a customer to see all their vehicles.</p>
+        <form method="GET" action="{{ route('master-customers.index') }}" class="flex flex-col sm:flex-row gap-4">
+            <div class="relative flex-grow">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 dark:text-slate-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
                 </div>
-                <form method="GET" action="{{ route('master-customers.index') }}" class="flex flex-wrap gap-3 items-center">
-                    <div class="relative flex-grow max-w-2xl">
-                        <input type="text" name="search" id="search" value="{{ request('search') }}"
-                            class="block w-full rounded-md border-0 py-2.5 px-4 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
-                            placeholder="Search by name, ID, email, phone, address...">
-                        @if(request('search'))
-                        <a href="{{ route('master-customers.index') }}" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
-                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
-                            </svg>
-                        </a>
-                        @endif
-                    </div>
-                    <!-- Source Filter -->
-                    <select name="source" class="rounded-md border-0 py-2.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm">
-                        <option value="">All Sources</option>
-                        <option value="customer_import" {{ request('source') === 'customer_import' ? 'selected' : '' }}>Real Customers</option>
-                        <option value="vehicle_import" {{ request('source') === 'vehicle_import' ? 'selected' : '' }}>Legacy / Placeholder</option>
-                    </select>
-                    <button type="submit" class="inline-flex justify-center items-center rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-                        Search
-                    </button>
-                </form>
+                <input type="text" name="search" id="search" value="{{ request('search') }}"
+                    class="block w-full pl-11 rounded-xl border-0 py-3.5 px-4 text-gray-900 dark:text-white bg-white dark:bg-slate-900 ring-1 ring-inset ring-gray-300 dark:ring-slate-700 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm transition-all"
+                    placeholder="Search by name, ID, email, phone, or address...">
+                @if(request('search'))
+                <a href="{{ route('master-customers.index') }}" class="absolute right-4 top-3.5 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300">
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
+                    </svg>
+                </a>
+                @endif
+            </div>
+            <select name="source" class="rounded-xl border-0 py-3.5 px-4 text-gray-900 dark:text-white bg-white dark:bg-slate-900 ring-1 ring-inset ring-gray-300 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-600 sm:text-sm transition-all">
+                <option value="">All Sources</option>
+                <option value="customer_import" {{ request('source') === 'customer_import' ? 'selected' : '' }}>Real Customers</option>
+                <option value="vehicle_import" {{ request('source') === 'vehicle_import' ? 'selected' : '' }}>Legacy / Placeholder</option>
+            </select>
+            <button type="submit" class="inline-flex justify-center items-center rounded-xl bg-gray-900 dark:bg-indigo-600 px-8 py-3.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 dark:hover:bg-indigo-500 transition-all">
+                Search
+            </button>
+        </form>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="flex flex-col lg:flex-row gap-8 items-start">
+        
+        <!-- Results Table -->
+        <div class="flex-1 rounded-2xl bg-white dark:bg-slate-800 shadow-sm ring-1 ring-gray-200 dark:ring-slate-700 overflow-hidden">
+            <div class="px-8 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-medium text-gray-700 dark:text-slate-300">{{ $customers->total() }} Customers found</span>
+                    <div class="h-4 w-px bg-gray-300 dark:bg-slate-700"></div>
+                    <span class="text-sm text-gray-500 dark:text-slate-400">Page {{ $customers->currentPage() }} of {{ $customers->lastPage() }}</span>
+                </div>
             </div>
 
-            <!-- Stats bar -->
-            <div class="flex items-center justify-between text-sm text-gray-500 px-1 mb-3">
-                <span>{{ $customers->total() }} customers found</span>
-                <span>Page {{ $customers->currentPage() }} of {{ $customers->lastPage() }}</span>
-            </div>
-
-            <!-- Customers Table + Detail Slide-out -->
-            <div class="flex gap-6 items-start" x-data="{ selected: null }">
-
-                <!-- Table -->
-                <div class="flex-1 bg-white shadow ring-1 ring-gray-200 sm:rounded-lg overflow-hidden min-w-0">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-300">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">ID</th>
-                                    <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                                    <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">City</th>
-                                    <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Phone</th>
-                                    <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
-                                    <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Vehicles</th>
-                                    <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Source</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white">
-                                @forelse($customers as $customer)
-                                <tr class="hover:bg-indigo-50/40 cursor-pointer transition-colors"
-                                    :class="selected && selected.id == {{ $customer->magic_cust }} ? 'bg-indigo-50 ring-2 ring-indigo-200 ring-inset' : ''"
-                                    @click="selected = {{ json_encode([
-                                        'id'           => $customer->magic_cust,
-                                        'name'         => $customer->name ?? '(No Name)',
-                                        'title'        => $customer->title,
-                                        'company'      => $customer->company_name,
-                                        'email'        => $customer->email,
-                                        'address_1'    => $customer->address_1,
-                                        'address_2'    => $customer->address_2,
-                                        'address_3'    => $customer->address_3,
-                                        'address_4'    => $customer->address_4,
-                                        'address_5'    => $customer->address_5,
-                                        'full_address' => $customer->full_address,
-                                        'telp_1'       => $customer->telp_1,
-                                        'telp_2'       => $customer->telp_2,
-                                        'telp_3'       => $customer->telp_3,
-                                        'telp_4'       => $customer->telp_4,
-                                        'date_created' => $customer->date_created?->format('d M Y'),
-                                        'source'       => $customer->source,
-                                        'vehicles_count' => $customer->vehicles_count,
-                                        'vehicles'     => $customer->vehicles->map(fn($v) => [
-                                            'magic' => $v->magic,
-                                            'registration_no' => $v->registration_no,
-                                            'description'     => $v->description,
-                                            'chassis_no'      => $v->chassis_no,
-                                            'status'          => $v->status,
-                                            'last_service_date' => $v->last_service_date?->format('d M Y'),
-                                        ])->toArray(),
-                                    ]) }}">
-                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 font-mono sm:pl-6">{{ $customer->magic_cust }}</td>
-                                    <td class="px-3 py-4 text-sm">
-                                        <p class="font-medium text-gray-900">
-                                            @if($customer->title) <span class="text-gray-400">{{ $customer->title }}</span> @endif
-                                            {{ $customer->name ?? '(No Name)' }}
-                                        </p>
-                                        @if($customer->company_name)
-                                        <p class="text-xs text-gray-400 mt-0.5">{{ $customer->company_name }}</p>
-                                        @endif
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ $customer->address_5 ?: '-' }}</td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 font-mono">
-                                        {{ $customer->telp_1 ?: ($customer->telp_2 ?: '-') }}
-                                    </td>
-                                    <td class="px-3 py-4 text-sm text-gray-500 max-w-[160px] truncate">
-                                        {{ $customer->email ?: '-' }}
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-center">
-                                        @if($customer->vehicles_count > 0)
-                                        <span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
-                                            {{ $customer->vehicles_count }}
-                                        </span>
-                                        @else
-                                        <span class="text-gray-300">0</span>
-                                        @endif
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                        @if($customer->source === 'customer_import')
-                                            <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">real</span>
-                                        @else
-                                            <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">legacy</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="7" class="px-3 py-12 text-center text-sm text-gray-500">
-                                        No customers found matching your search.
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    @if($customers->hasPages())
-                    <div class="px-4 py-3 border-t border-gray-200 sm:px-6">
-                        {{ $customers->links() }}
-                    </div>
-                    @endif
-                </div>
-
-                <!-- Detail Sidebar (shows when a customer is selected) -->
-                <div class="w-80 flex-shrink-0 sticky top-6"
-                     x-show="selected"
-                     x-cloak
-                     x-transition:enter="transition ease-out duration-200"
-                     x-transition:enter-start="opacity-0 translate-x-4"
-                     x-transition:enter-end="opacity-100 translate-x-0">
-                    <div class="bg-white shadow-xl ring-1 ring-gray-200 rounded-xl overflow-hidden">
-
-                        <!-- Header -->
-                        <div class="bg-indigo-600 px-5 py-4">
-                            <div class="flex items-start justify-between">
-                                <div class="min-w-0">
-                                    <p class="text-indigo-200 text-xs font-medium uppercase tracking-wide" x-text="selected?.source === 'vehicle_import' ? 'Legacy Customer' : 'Customer Profile'"></p>
-                                    <h3 class="mt-1 text-base font-bold text-white truncate" x-text="selected?.title ? selected.title + ' ' + selected.name : selected?.name"></h3>
-                                    <p class="text-indigo-300 text-xs mt-0.5" x-text="'ID: ' + selected?.id"></p>
+            <div class="overflow-x-auto min-h-[400px]">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <thead>
+                        <tr class="text-gray-400 dark:text-slate-500 font-medium uppercase tracking-wider text-xs">
+                            <th class="px-8 py-5">Name / Company</th>
+                            <th class="px-4 py-5">Location</th>
+                            <th class="px-4 py-5 text-center">Vehicles</th>
+                            <th class="px-4 py-5 text-right">Source</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+                        @forelse($customers as $customer)
+                        <tr class="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 cursor-pointer transition-colors group"
+                            :class="selected && selected.id == {{ $customer->magic_cust }} ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : ''"
+                            data-customer="{{ json_encode([
+                                'id'           => $customer->magic_cust,
+                                'name'         => $customer->name ?? '(No Name)',
+                                'title'        => $customer->title,
+                                'company'      => $customer->company_name,
+                                'email'        => $customer->email,
+                                'full_address' => $customer->full_address,
+                                'telp_1'       => $customer->telp_1,
+                                'telp_2'       => $customer->telp_2,
+                                'telp_3'       => $customer->telp_3,
+                                'telp_4'       => $customer->telp_4,
+                                'source'       => $customer->source,
+                                'vehicles_count' => $customer->vehicles_count,
+                                'vehicles'     => $customer->vehicles->map(fn($v) => [
+                                    'magic' => $v->magic,
+                                    'registration_no' => $v->registration_no,
+                                    'description'     => $v->description,
+                                    'chassis_no'      => $v->chassis_no,
+                                ])->toArray(),
+                            ]) }}"
+                            @click="selected = JSON.parse($el.dataset.customer)"
+                        >
+                            <td class="px-8 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-900 dark:text-white">{{ $customer->name ?: '(No Name)' }}</span>
+                                    <span class="text-xs text-gray-400 dark:text-slate-500 mt-0.5 truncate max-w-[200px]">{{ $customer->company_name ?: '' }}</span>
                                 </div>
-                                <button @click="selected = null" class="flex-shrink-0 rounded-md p-1 text-indigo-200 hover:text-white hover:bg-indigo-500 transition ml-2">
-                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/>
+                            </td>
+                            <td class="px-4 py-4 text-gray-600 dark:text-slate-300">{{ $customer->address_5 ?: '-' }}</td>
+                            <td class="px-4 py-4 text-center">
+                                @if($customer->vehicles_count > 0)
+                                    <span class="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-bold text-indigo-700 dark:text-indigo-400 ring-1 ring-inset ring-indigo-600/20 dark:ring-indigo-500/30">
+                                        {{ $customer->vehicles_count }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-300 dark:text-slate-700">0</span>
+                                @endif
+                            </td>
+                            <td class="px-8 py-4 text-right">
+                                @if($customer->source === 'customer_import')
+                                    <span class="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-600/20 dark:ring-emerald-500/30 tracking-wider uppercase">Master</span>
+                                @else
+                                    <span class="inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-400 ring-1 ring-inset ring-amber-600/20 dark:ring-amber-500/30 tracking-wider uppercase">Legacy</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="4" class="px-8 py-20 text-center">No customers found.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            @if($customers->hasPages())
+            <div class="px-8 py-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-900/30">
+                {{ $customers->links() }}
+            </div>
+            @endif
+        </div>
+
+        <!-- Detail Sidebar -->
+        <div class="w-full lg:w-96 lg:sticky lg:top-6" 
+             x-show="selected" 
+             x-cloak
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 lg:translate-y-0 lg:translate-x-4"
+             x-transition:enter-end="opacity-100 translate-y-0 lg:translate-x-0">
+            
+            <div class="bg-indigo-900 rounded-2xl shadow-2xl overflow-hidden text-white">
+                <!-- Profile Header -->
+                <div class="p-8 pb-12 relative overflow-hidden">
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 rounded-2xl bg-indigo-500/30 flex items-center justify-center border border-indigo-400/30">
+                                <svg class="w-6 h-6 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <button @click="selected = null" class="p-2 rounded-xl hover:bg-white/10 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <h3 class="text-xl font-bold truncate" x-text="selected?.name"></h3>
+                        <p class="text-indigo-300 text-sm font-mono mt-1" x-text="'ID: ' + selected?.id"></p>
+                    </div>
+                    <!-- Decorative Circle -->
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl"></div>
+                </div>
+
+                <!-- Info Sections -->
+                <div class="bg-white dark:bg-slate-800 rounded-t-3xl -mt-6 p-8 space-y-8 text-gray-900 dark:text-white min-h-[400px]">
+                    
+                    <div class="grid grid-cols-1 gap-6">
+                        <div x-show="selected?.company">
+                            <label class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Company</label>
+                            <p class="mt-1 font-semibold text-gray-900 dark:text-white" x-text="selected?.company"></p>
+                        </div>
+                        <div x-show="selected?.email">
+                            <label class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Email Address</label>
+                            <a :href="'mailto:' + selected?.email" class="block mt-1 font-medium text-indigo-600 dark:text-indigo-400 hover:underline" x-text="selected?.email"></a>
+                        </div>
+                        <div x-show="selected?.full_address">
+                            <label class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Address</label>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-slate-300 leading-relaxed" x-text="selected?.full_address"></p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-3">Phones</label>
+                        <div class="flex flex-col gap-2">
+                           <template x-for="i in [1,2,3,4]">
+                               <template x-if="selected?.['telp_'+i]">
+                                   <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 group hover:border-indigo-200 dark:hover:border-indigo-500 transition-colors">
+                                       <svg class="w-4 h-4 text-gray-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 7.5V5z"></path>
+                                       </svg>
+                                       <a :href="'tel:' + selected['telp_'+i]" class="text-sm font-mono font-medium text-gray-700 dark:text-slate-200" x-text="selected['telp_'+i]"></a>
+                                   </div>
+                               </template>
+                           </template>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <label class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Registered Vehicles</label>
+                            <span class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full" x-text="selected?.vehicles_count"></span>
+                        </div>
+                        <div class="space-y-3">
+                            <template x-for="v in selected?.vehicles" :key="v.magic">
+                                <a :href="'/master-vehicles/' + v.magic" class="flex items-center justify-between p-4 rounded-2xl bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all group">
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-400" x-text="v.registration_no"></p>
+                                        <p class="text-[10px] font-mono text-gray-400 dark:text-slate-500 mt-0.5" x-text="v.chassis_no"></p>
+                                    </div>
+                                    <svg class="w-4 h-4 text-gray-300 dark:text-slate-700 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                     </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Contact Info -->
-                        <div class="px-5 py-4 space-y-3 border-b border-gray-100">
-                            <template x-if="selected?.company">
-                                <div>
-                                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">Company</p>
-                                    <p class="text-sm text-gray-900 mt-0.5" x-text="selected.company"></p>
-                                </div>
+                                </a>
                             </template>
-                            <template x-if="selected?.full_address">
-                                <div>
-                                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">Address</p>
-                                    <p class="text-sm text-gray-700 mt-0.5 leading-relaxed" x-text="selected.full_address"></p>
-                                </div>
-                            </template>
-                            <div>
-                                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">Phone</p>
-                                <div class="mt-1 flex flex-col gap-1">
-                                    <template x-for="ph in [selected?.telp_1, selected?.telp_2, selected?.telp_3, selected?.telp_4].filter(Boolean)" :key="ph">
-                                        <a :href="'tel:' + ph" class="text-sm text-indigo-600 hover:text-indigo-800 font-mono" x-text="ph"></a>
-                                    </template>
-                                    <template x-if="!selected?.telp_1 && !selected?.telp_2 && !selected?.telp_3 && !selected?.telp_4">
-                                        <span class="text-sm text-gray-400">No phone on record</span>
-                                    </template>
-                                </div>
-                            </div>
-                            <template x-if="selected?.email">
-                                <div>
-                                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">Email</p>
-                                    <a :href="'mailto:' + selected.email" class="text-sm text-indigo-600 hover:text-indigo-800 truncate block mt-0.5" x-text="selected.email"></a>
-                                </div>
-                            </template>
-                        </div>
-
-                        <!-- Vehicles -->
-                        <div class="px-5 py-4">
-                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-                                Vehicles (<span x-text="selected?.vehicles_count ?? 0"></span>)
-                            </p>
-                            <div class="space-y-2 max-h-64 overflow-y-auto">
-                                <template x-for="v in (selected?.vehicles ?? [])" :key="v.magic">
-                                    <a :href="'/master-vehicles/' + v.magic"
-                                       class="block rounded-lg bg-gray-50 hover:bg-indigo-50 px-3 py-2 transition group">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-sm font-semibold text-gray-900 group-hover:text-indigo-700" x-text="v.registration_no || '(No Plate)'"></span>
-                                            <span class="text-xs px-1.5 py-0.5 rounded"
-                                                  :class="v.status === 'C' ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700'"
-                                                  x-text="v.status === 'C' ? 'Closed' : (v.status || '?')"></span>
-                                        </div>
-                                        <p class="text-xs text-gray-500 mt-0.5" x-text="v.description"></p>
-                                        <p class="text-xs text-gray-400 font-mono mt-0.5" x-text="v.chassis_no"></p>
-                                        <template x-if="v.last_service_date">
-                                            <p class="text-xs text-gray-400 mt-0.5">Last service: <span x-text="v.last_service_date"></span></p>
-                                        </template>
-                                    </a>
-                                </template>
-                                <template x-if="!selected?.vehicles?.length">
-                                    <p class="text-sm text-gray-400 text-center py-3">No vehicles on record</p>
-                                </template>
-                            </div>
                         </div>
                     </div>
-                </div>
 
+                    <div class="pt-6 border-t border-gray-100 dark:border-slate-700">
+                        <a :href="'/master-customers/' + selected?.id" class="block w-full py-4 rounded-2xl bg-gray-900 dark:bg-indigo-600 text-white text-center font-bold text-sm hover:bg-gray-800 dark:hover:bg-indigo-500 transition-all shadow-xl shadow-gray-200 dark:shadow-none">
+                            Full Profile Details &rarr;
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
-    </main>
+
+    </div>
 </div>
-</body>
-</html>
+@endsection
