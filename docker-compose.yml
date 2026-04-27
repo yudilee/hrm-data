@@ -1,0 +1,64 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sh -c "cp -rp /opt/public_backup/* /var/www/html/public/ && php-fpm"
+    depends_on:
+      - db
+    environment:
+      - APP_NAME="Master Data Hub"
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8085
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-hrm_data}
+      - SESSION_DRIVER=database
+      - QUEUE_CONNECTION=database
+      - CACHE_STORE=database
+      - APP_KEY=${APP_KEY}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - public-assets:/var/www/html/public
+      - storage-data:/var/www/html/storage
+    networks:
+      - hrm-network
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    ports:
+      - "8085:80"
+    volumes:
+      - public-assets:/var/www/html/public
+    depends_on:
+      - app
+    networks:
+      - hrm-network
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3311:3306"
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-hrm_data}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - hrm-network
+
+networks:
+  hrm-network:
+    driver: bridge
+
+volumes:
+  db_data:
+  public-assets:
+  storage-data:
