@@ -19,7 +19,7 @@ class ServiceHistoryController extends Controller
             return response()->json(['error' => 'Please provide Police No or Chassis No'], 400);
         }
 
-        $query = ServiceHistory::query();
+        $query = ServiceHistory::with(['labours', 'parts']);
 
         if ($request->filled('cnpol')) {
             $query->where('CNPOL', $request->cnpol);
@@ -38,6 +38,7 @@ class ServiceHistoryController extends Controller
 
         // The first row will provide the common vehicle details
         $vehicle = $histories->first();
+        $customer = $vehicle->effective_customer;
 
         return response()->json([
             'vehicle' => [
@@ -46,10 +47,10 @@ class ServiceHistoryController extends Controller
                 'CENGN' => $vehicle->CENGN,
                 'ETYPE' => $vehicle->ETYPE,
                 'DSTNK' => $vehicle->DSTNK ? \Carbon\Carbon::parse($vehicle->DSTNK)->format('d/m/Y') : '',
-                'ENAME' => $vehicle->ENAME,
-                'EADDR' => $vehicle->EADDR,
-                'ECITY' => $vehicle->ECITY,
-                'EPHON' => $vehicle->EPHON,
+                'ENAME' => $customer ? $customer->name : $vehicle->ENAME,
+                'EADDR' => $customer ? $customer->address_1 : $vehicle->EADDR,
+                'ECITY' => $customer ? ($customer->city ?? $customer->address_3) : $vehicle->ECITY,
+                'EPHON' => $customer ? ($customer->phone ?? $customer->telp_1) : $vehicle->EPHON,
             ],
             'invoices' => $histories->map(function ($row) {
                 return [
@@ -69,6 +70,14 @@ class ServiceHistoryController extends Controller
                     'AMTRS' => $row->AMTRS,
                     'AMOUNT' => ($row->ASUBS + $row->ATAXS + $row->AMTRS) - $row->DISC,
                     'EKMPOS' => $row->EKMPOS,
+                    'CNPOL'  => $row->CNPOL,
+                    'CHASN'  => $row->CHASN,
+                    'source' => $row->source,
+                    'search_text' => strtolower(
+                        $row->CJOBN . ' ' . $row->CINVN . ' ' . $row->CHASN . ' ' . $row->CNPOL . ' ' .
+                        collect($row->labours)->pluck('EMJOB')->join(' ') . ' ' . 
+                        collect($row->parts)->pluck('EDESC')->join(' ')
+                    ),
                 ];
             })
         ]);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -46,12 +47,14 @@ class UserController extends Controller
             'role' => 'required|in:admin,user,invoice',
         ]);
 
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
+        $user = User::create([
+            'name'     => $request->name,
+            'email'    => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
+            'role'     => $request->role,
         ]);
+
+        AuditLog::record('created', $user, [], $user->only(['name', 'email', 'role']), "Created user {$user->name}");
 
         return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
     }
@@ -70,15 +73,19 @@ class UserController extends Controller
             'role' => 'required|in:admin,user,invoice',
         ]);
 
+        $old = $user->only(['name', 'email', 'role']);
+
         $user->update([
-            'name' => $request->name,
+            'name'  => $request->name,
             'email' => $request->email,
-            'role' => $request->role,
+            'role'  => $request->role,
         ]);
 
         if ($request->filled('password')) {
             $user->update(['password' => Hash::make($request->password)]);
         }
+
+        AuditLog::record('updated', $user, $old, $user->only(['name', 'email', 'role']), "Updated user {$user->name}");
 
         return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
     }
@@ -89,6 +96,7 @@ class UserController extends Controller
             return back()->with('error', 'You cannot delete yourself.');
         }
 
+        AuditLog::record('deleted', $user, $user->only(['name', 'email', 'role']), [], "Deleted user {$user->name}");
         $user->delete();
         return redirect()->route('admin.users.index')->with('success', 'User deleted successfully.');
     }

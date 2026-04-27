@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\LoginAttempt;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AuthController extends Controller
 {
@@ -20,21 +23,45 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required',
+            'email'    => 'required',
             'password' => 'required',
         ]);
 
+        $ip = $request->ip();
+        $ua = $request->userAgent() ?? '';
+
+        // Brute-force protection: 10+ failures in 15 min from same IP
+        if (LoginAttempt::recentFailures($ip, 15) >= 10) {
+            Log::channel('security')->warning('Login brute-force lockout triggered', [
+                'ip'    => $ip,
+                'email' => $request->email,
+            ]);
+
+            return back()->withErrors([
+                'email' => 'Too many failed login attempts from your IP. Please wait 15 minutes.',
+            ])->onlyInput('email');
+        }
+
         $user = User::where('email', $request->email)->first();
-        
+
         if ($user && Hash::check($request->password, $user->password)) {
             $this->completeLogin($user, $request);
+            LoginAttempt::record($request->email, true, $ip, $ua);
             return redirect()->intended(route('import.index'));
         }
+
+        LoginAttempt::record($request->email, false, $ip, $ua, 'invalid_credentials');
+
+        Log::channel('security')->info('Failed login attempt', [
+            'email' => $request->email,
+            'ip'    => $ip,
+        ]);
 
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
     }
+
 
     protected function completeLogin($user, Request $request): void
     {

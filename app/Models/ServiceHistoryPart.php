@@ -17,4 +17,19 @@ class ServiceHistoryPart extends Model
     {
         return $this->belongsTo(ServiceHistory::class, 'service_history_id', 'id');
     }
+
+    public function getDescriptionAttribute()
+    {
+        return $this->EDESC;
+    }
+
+    public function getCodeAttribute()
+    {
+        return $this->CPART;
+    }
+
+    public function getQuantityAttribute()
+    {
+        return $this->QRECV ?: 1;
+    }
 }

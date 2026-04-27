@@ -14,7 +14,7 @@
 @section('content')
 <div class="space-y-6" x-data="{ customerModal: null }">
     <!-- Header/Search Section -->
-    <div class="rounded-2xl bg-white dark:bg-slate-800 p-8 shadow-sm ring-1 ring-gray-200 dark:ring-slate-700">
+    <div class="relative z-50 rounded-2xl bg-white dark:bg-slate-800 p-8 shadow-sm ring-1 ring-gray-200 dark:ring-slate-700">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Master Vehicles</h1>
@@ -97,7 +97,7 @@
                             </div>
                         </td>
                         <td class="px-4 py-4">
-                            <a href="{{ route('master-vehicles.show', $vehicle->magic) }}"
+                            <a href="{{ route('master-vehicles.show', $vehicle->id) }}"
                                class="inline-flex items-center font-mono text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 group-hover:underline">
                                 {{ $vehicle->chassis_no ?: '-' }}
                                 <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,7 +111,7 @@
                                <button 
                                    @click="customerModal = JSON.parse($el.dataset.customer)"
                                    data-customer="{{ json_encode([
-                                       'id'           => $vehicle->customer->magic_cust,
+                                       'id'           => $vehicle->customer->id,
                                        'name'         => $vehicle->customer->name ?? '(No Name)',
                                        'title'        => $vehicle->customer->title,
                                        'email'        => $vehicle->customer->email,

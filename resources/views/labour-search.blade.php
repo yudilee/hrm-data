@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Labour Search (RTS) - RTS Master Data System')
+@section('title', 'Labour Search (RTS) - Dealership MasterData Hub Data System')
 
 @section('breadcrumb')
 <li class="inline-flex items-center">
@@ -50,6 +50,12 @@
             <div>
                 <h3 class="text-sm font-bold text-gray-500 dark:text-slate-500 uppercase tracking-widest">Search Results</h3>
                 <p class="text-gray-900 dark:text-slate-200 font-medium">Found <span class="text-indigo-600 dark:text-indigo-400 font-bold" x-text="results.total_results"></span> operations for model prefix <span class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded font-mono" x-text="results.model_prefix"></span></p>
+                <template x-if="results.vehicle_id && !new URLSearchParams(window.location.search).get('compact')">
+                    <a :href="'/master-vehicles/' + results.vehicle_id" class="inline-flex items-center gap-2 mt-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        View Vehicle Profile
+                    </a>
+                </template>
             </div>
             <div class="relative max-w-xs w-full">
                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
@@ -139,7 +145,7 @@
             error: null,
             searchFilter: '',
             activeGroup: null,
-            results: { model_prefix: '', total_results: 0, data: [] },
+            results: { model_prefix: '', total_results: 0, vehicle_id: null, data: [] },
             
             init() {
                 if (this.chassisInput) {
@@ -177,7 +183,7 @@
                 this.isLoading = true;
                 this.error = null;
                 try {
-                    let response = await fetch(`/api/labour-codes?chassis_number=${encodeURIComponent(this.chassisInput)}`);
+                    let response = await fetch(`/web-api/labour-codes?chassis_number=${encodeURIComponent(this.chassisInput)}`);
                     let data = await response.json();
                     if(!response.ok) throw new Error(data.error || "Failed to fetch data.");
                     this.results = data;

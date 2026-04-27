@@ -9,27 +9,61 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('master_vehicles', function (Blueprint $table) {
-            $table->unsignedBigInteger('magic')->primary();
+            // --- Global Identity ---
+            $table->id();                                            // Auto-increment global PK
+            $table->unsignedBigInteger('legacy_magic')->nullable()->index()
+                  ->comment('Original FoxPro/LVS magic ID, preserved for reference only');
+
+            // --- Vehicle Identifiers (chassis is the true global key) ---
             $table->string('registration_no')->nullable()->index();
-            $table->string('franc', 1)->nullable()->comment('Brand code: M=Mercedes, V=Vans, Z=?, T=?, S=?');
+            $table->string('chassis_no')->nullable()->unique()->index()
+                  ->comment('VIN/Chassis — used as global dedup key across all sources');
+            $table->string('mhl_number')->nullable();
+            $table->string('engine_no')->nullable()->index();
+
+            // --- Vehicle Specs ---
+            $table->string('franc', 1)->nullable()
+                  ->comment('Brand franchise code: M=Mercedes PC, V=Vans/CV, Z=?, T=?, S=?');
             $table->string('model')->nullable();
             $table->string('variant')->nullable();
             $table->string('description')->nullable();
-            $table->string('chassis_no')->nullable()->index();
-            $table->string('mhl_number')->nullable();
-            $table->string('engine_no')->nullable()->index();
+
+            // --- Status ---
             $table->string('user_id')->nullable();
-            $table->string('status', 1)->nullable()->comment('C=Closed, S=?, O=Open, D=Deleted');
+            $table->string('status', 1)->nullable()
+                  ->comment('C=Closed, S=Suspended, O=Open, D=Deleted');
             $table->integer('progress_code')->nullable();
-            $table->unsignedBigInteger('customer_magic')->nullable()->index();
+
+            // --- Owner Link ---
+            $table->unsignedBigInteger('primary_customer_id')->nullable()->index()
+                  ->comment('FK to master_customers.id — the primary known owner/operator');
+
+            // --- Dates ---
             $table->date('reg_date')->nullable();
             $table->date('created_date')->nullable();
             $table->date('last_edited_date')->nullable();
             $table->date('last_service_date')->nullable();
+
+            // --- Multi-branch Metadata ---
+            $table->string('source', 100)->nullable()
+                  ->comment('Primary source branch, e.g. HRMSBY PC');
+            $table->string('true_franchise')->nullable()
+                  ->comment('Computed true franchise from all branch visits');
+            $table->json('branches_visited')->nullable()
+                  ->comment('Array of branch codes where this vehicle has been seen');
+            $table->json('legacy_mappings')->nullable()
+                  ->comment('Array of {branch, magic} pairs from all source systems');
+
+            // --- Data Recovery Flag ---
+            $table->boolean('is_recovered')->default(false)->index()
+                  ->comment('true if auto-recovered from FoxPro history — not in original LVS/DMS master');
+
+            // Odoo columns are added in a later migration
             $table->timestamps();
 
-            $table->foreign('customer_magic')
-                  ->references('magic_cust')
+            // FK defined after customer table is created (same migration order)
+            $table->foreign('primary_customer_id')
+                  ->references('id')
                   ->on('master_customers')
                   ->nullOnDelete();
         });

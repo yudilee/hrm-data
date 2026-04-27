@@ -18,7 +18,10 @@ class BackupService
      */
     public function create($remark = null)
     {
-        $filename = 'backup-' . Carbon::now()->format('Y-m-d-H-i-s') . '.sqlite.gz';
+        $connection = config('database.default');
+        
+        $extension = $connection === 'mysql' ? '.sql.gz' : '.sqlite.gz';
+        $filename = 'backup-' . Carbon::now()->format('Y-m-d-H-i-s') . $extension;
         $backupDir = Storage::disk($this->disk)->path($this->backupFolder);
         $backupPath = $backupDir . '/' . $filename;
         
@@ -27,25 +30,50 @@ class BackupService
             mkdir($backupDir, 0755, true);
         }
 
-        $dbPath = database_path('database.sqlite');
-        
-        if (!file_exists($dbPath)) {
-            throw new \Exception('SQLite database file not found.');
-        }
+        if ($connection === 'mysql') {
+            $dbHost = env('DB_HOST', '127.0.0.1');
+            $dbPort = env('DB_PORT', '3306');
+            $dbUser = env('DB_USERNAME', 'root');
+            $dbPass = env('DB_PASSWORD', '');
+            $dbName = env('DB_DATABASE', 'master_data');
+            
+            $cmd = sprintf(
+                'mysqldump --no-tablespaces -h %s -P %s -u %s %s %s | gzip > %s',
+                escapeshellarg($dbHost),
+                escapeshellarg($dbPort),
+                escapeshellarg($dbUser),
+                $dbPass ? '-p' . escapeshellarg($dbPass) : '',
+                escapeshellarg($dbName),
+                escapeshellarg($backupPath)
+            );
+            
+            exec($cmd, $output, $returnVar);
+            
+            if ($returnVar !== 0) {
+                if (file_exists($backupPath)) unlink($backupPath);
+                throw new \Exception('MySQL backup failed. Return code: ' . $returnVar);
+            }
+        } else {
+            $dbPath = database_path('database.sqlite');
+            
+            if (!file_exists($dbPath)) {
+                throw new \Exception('SQLite database file not found.');
+            }
 
-        // Copy and gzip the SQLite file
-        $tempPath = $backupDir . '/temp_backup.sqlite';
-        copy($dbPath, $tempPath);
-        
-        // Gzip the file
-        $fp = fopen($tempPath, 'rb');
-        $gz = gzopen($backupPath, 'wb9');
-        while (!feof($fp)) {
-            gzwrite($gz, fread($fp, 8192));
+            // Copy and gzip the SQLite file
+            $tempPath = $backupDir . '/temp_backup.sqlite';
+            copy($dbPath, $tempPath);
+            
+            // Gzip the file
+            $fp = fopen($tempPath, 'rb');
+            $gz = gzopen($backupPath, 'wb9');
+            while (!feof($fp)) {
+                gzwrite($gz, fread($fp, 8192));
+            }
+            fclose($fp);
+            gzclose($gz);
+            unlink($tempPath);
         }
-        fclose($fp);
-        gzclose($gz);
-        unlink($tempPath);
 
         $fileSize = filesize($backupPath);
 
@@ -86,7 +114,7 @@ class BackupService
      */
     public function restoreFromFile(UploadedFile $file)
     {
-        $tempPath = Storage::disk($this->disk)->path('temp_restore_' . time() . '.sqlite.gz');
+        $tempPath = Storage::disk($this->disk)->path('temp_restore_' . time() . '.gz');
         $file->move(dirname($tempPath), basename($tempPath));
 
         $this->restoreFromPath($tempPath, true);
@@ -98,24 +126,50 @@ class BackupService
      */
     protected function restoreFromPath($path, $deleteAfter = false)
     {
-        $dbPath = database_path('database.sqlite');
+        $connection = config('database.default');
         
-        // Decompress gzip to temp file
-        $tempPath = database_path('restore_temp.sqlite');
-        
-        $gz = gzopen($path, 'rb');
-        $fp = fopen($tempPath, 'wb');
-        while (!gzeof($gz)) {
-            fwrite($fp, gzread($gz, 8192));
-        }
-        gzclose($gz);
-        fclose($fp);
+        if ($connection === 'mysql') {
+            $dbHost = env('DB_HOST', '127.0.0.1');
+            $dbPort = env('DB_PORT', '3306');
+            $dbUser = env('DB_USERNAME', 'root');
+            $dbPass = env('DB_PASSWORD', '');
+            $dbName = env('DB_DATABASE', 'master_data');
+            
+            $cmd = sprintf(
+                'gunzip -c %s | mysql -h %s -P %s -u %s %s %s',
+                escapeshellarg($path),
+                escapeshellarg($dbHost),
+                escapeshellarg($dbPort),
+                escapeshellarg($dbUser),
+                $dbPass ? '-p' . escapeshellarg($dbPass) : '',
+                escapeshellarg($dbName)
+            );
+            
+            exec($cmd, $output, $returnVar);
+            
+            if ($returnVar !== 0) {
+                throw new \Exception('MySQL restore failed. Return code: ' . $returnVar);
+            }
+        } else {
+            $dbPath = database_path('database.sqlite');
+            
+            // Decompress gzip to temp file
+            $tempPath = database_path('restore_temp.sqlite');
+            
+            $gz = gzopen($path, 'rb');
+            $fp = fopen($tempPath, 'wb');
+            while (!gzeof($gz)) {
+                fwrite($fp, gzread($gz, 8192));
+            }
+            gzclose($gz);
+            fclose($fp);
 
-        // Replace current database
-        if (file_exists($dbPath)) {
-            unlink($dbPath);
+            // Replace current database
+            if (file_exists($dbPath)) {
+                unlink($dbPath);
+            }
+            rename($tempPath, $dbPath);
         }
-        rename($tempPath, $dbPath);
 
         if ($deleteAfter && file_exists($path)) {
             unlink($path);

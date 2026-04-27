@@ -27,12 +27,12 @@
             <template x-if="darkMode">
                 <img src="{{ asset('images/logo-dark.png') }}" alt="Master Data Hub Logo" class="mx-auto h-20 mb-4 object-contain">
             </template>
-            <p class="text-slate-500 dark:text-slate-400 mt-2">Create your account</p>
+            <p class="text-slate-600 dark:text-slate-400 mt-2">Create your account</p>
         </div>
 
         <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
             @if($errors->any())
-                <div class="mb-6 bg-red-900/30 border border-red-700 text-red-300 p-4 rounded-lg text-sm">
+                <div class="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-600 dark:text-red-300 p-4 rounded-lg text-sm">
                     @foreach($errors->all() as $error)
                         <p>{{ $error }}</p>
                     @endforeach
@@ -69,8 +69,8 @@
             </form>
         </div>
 
-        <p class="text-center text-slate-500 text-sm mt-6">
-            Already have an account? <a href="{{ route('login') }}" class="text-emerald-400 hover:text-emerald-300 transition">Sign In</a>
+        <p class="text-center text-slate-600 dark:text-slate-400 text-sm mt-6">
+            Already have an account? <a href="{{ route('login') }}" class="text-emerald-500 hover:text-emerald-400 transition">Sign In</a>
         </p>
     </div>
 </body>

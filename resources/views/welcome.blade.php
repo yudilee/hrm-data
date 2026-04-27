@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard - RTS Master Data System')
+@section('title', 'Dashboard - Dealership MasterData Hub Data System')
 
 @section('breadcrumb')
 <li class="inline-flex items-center">
@@ -175,7 +175,7 @@
                                     <span class="bg-gray-100 dark:bg-slate-900 px-2 py-1 rounded text-xs font-bold font-mono text-gray-700 dark:text-slate-300">{{ $v->registration_no ?: '-' }}</span>
                                 </td>
                                 <td class="px-8 py-4 text-right">
-                                    <a href="{{ route('master-vehicles.show', $v->magic) }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 font-bold">View &rarr;</a>
+                                    <a href="{{ route('master-vehicles.show', $v->id) }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 font-bold">View &rarr;</a>
                                 </td>
                             </tr>
                             @endforeach

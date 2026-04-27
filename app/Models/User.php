@@ -7,11 +7,12 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +25,16 @@ class User extends Authenticatable
         'password',
         'role',
         'auth_source',
+    ];
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected array $roleHierarchy = [
+        'admin' => ['admin', 'user'],
+        'user'  => ['user'],
     ];
 
     /**
@@ -59,11 +70,15 @@ class User extends Authenticatable
         return in_array($this->role, $roles);
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
     public function getRoleDisplayName(): string
     {
         return match($this->role) {
             'admin' => 'Administrator',
-            'invoice' => 'Invoice',
             default => 'User',
         };
     }

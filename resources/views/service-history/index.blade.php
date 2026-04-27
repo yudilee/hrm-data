@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Vehicle History - RTS Master')
+@section('title', 'Vehicle History - Dealership MasterData Hub')
 
 @section('breadcrumb')
     <li class="inline-flex items-center">
@@ -111,6 +111,12 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex-1 min-h-[300px] flex flex-col overflow-hidden" x-show="invoices.length > 0">
         <div class="p-3 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 flex justify-between items-center">
             <h3 class="font-bold text-gray-800 dark:text-slate-200 text-sm">*** All Invoice ***</h3>
+            <div class="relative max-w-xs w-full">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" x-model="invoiceSearchTerm" class="block w-full pl-9 rounded-lg border-0 py-1.5 text-sm text-gray-900 dark:text-white bg-white dark:bg-slate-800 ring-1 ring-inset ring-gray-200 dark:ring-slate-700 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600" placeholder="Search repairs or parts...">
+            </div>
         </div>
         
         <div class="overflow-x-auto flex-1">
@@ -118,6 +124,9 @@
                 <thead class="text-xs text-gray-700 dark:text-slate-300 uppercase bg-gray-100 dark:bg-slate-900 sticky top-0">
                     <tr>
                         <th scope="col" class="px-3 py-2 border-r border-b border-gray-200 dark:border-slate-700">WIP No.</th>
+                        <th scope="col" class="px-3 py-2 border-r border-b border-gray-200 dark:border-slate-700">Branch</th>
+                        <th scope="col" class="px-3 py-2 border-r border-b border-gray-200 dark:border-slate-700">Police No.</th>
+                        <th scope="col" class="px-3 py-2 border-r border-b border-gray-200 dark:border-slate-700">Chassis No.</th>
                         <th scope="col" class="px-3 py-2 border-r border-b border-gray-200 dark:border-slate-700">Receive Date</th>
                         <th scope="col" class="px-3 py-2 border-r border-b border-gray-200 dark:border-slate-700">Invoice</th>
                         <th scope="col" class="px-3 py-2 border-r border-b border-gray-200 dark:border-slate-700">Invoice Date</th>
@@ -132,11 +141,20 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
-                    <template x-for="inv in invoices" :key="inv.id">
+                    <template x-for="inv in filteredInvoices" :key="inv.id">
                         <tr @click="loadDetails(inv)" 
                             class="hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer transition-colors"
                             :class="{'bg-indigo-100 dark:bg-indigo-900/50': selectedInvoice?.id === inv.id, 'bg-white dark:bg-slate-800': selectedInvoice?.id !== inv.id}">
-                            <td class="px-3 py-2 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap" x-text="inv.CJOBN"></td>
+                            <td class="px-3 py-2 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap font-bold text-gray-900 dark:text-white" x-text="inv.CJOBN"></td>
+                            <td class="px-3 py-2 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-200 dark:ring-slate-600" x-text="inv.source"></span>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap font-bold" 
+                                :class="inv.CNPOL !== vehicleData?.CNPOL ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' : 'text-gray-900 dark:text-white'" 
+                                x-text="inv.CNPOL"></td>
+                            <td class="px-3 py-2 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap font-mono" 
+                                :class="inv.CHASN !== vehicleData?.CHASN ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 font-bold' : 'text-gray-500 dark:text-slate-400'" 
+                                x-text="inv.CHASN"></td>
                             <td class="px-3 py-2 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap" x-text="inv.DRECV"></td>
                             <td class="px-3 py-2 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap text-indigo-600 dark:text-indigo-400 font-bold" x-text="inv.CINVN"></td>
                             <td class="px-3 py-2 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap" x-text="inv.DINVN"></td>
@@ -253,12 +271,21 @@
             
             vehicleData: null,
             invoices: [],
+            invoiceSearchTerm: '',
             
             selectedInvoice: null,
             isDetailsLoading: false,
             details: {
                 labours: [],
                 parts: []
+            },
+
+            get filteredInvoices() {
+                if (!this.invoiceSearchTerm) return this.invoices;
+                const term = this.invoiceSearchTerm.toLowerCase();
+                return this.invoices.filter(inv => {
+                    return inv.search_text && inv.search_text.includes(term);
+                });
             },
 
             formatCurrency(value) {

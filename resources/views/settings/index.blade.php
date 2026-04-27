@@ -4,282 +4,205 @@
 @section('subtitle', 'Configure application behavior')
 
 @section('content')
-<div class="max-w-2xl">
+<div class="max-w-2xl space-y-6">
+
+    @if(session('success'))
+        <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+            {{ session('error') }}
+        </div>
+    @endif
+
+    {{-- ═══ LABOUR CODES REBUILD ═══ --}}
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm"
+         x-data="labourRebuild()" x-init="init()">
+
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">Rebuild Labour Codes</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Clears &amp; re-imports all RTS codes from <code class="bg-slate-100 dark:bg-slate-900 px-1.5 rounded font-mono text-[11px]">Data Operation/</code></p>
+                </div>
+            </div>
+            {{-- Status badge --}}
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                  :class="{
+                    'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400': status === 'idle',
+                    'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 animate-pulse': status === 'running',
+                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300': status === 'success',
+                    'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300': status === 'error',
+                  }"
+                  x-text="statusLabel"></span>
+        </div>
+
+        <div class="px-6 py-5 space-y-4">
+
+            {{-- Info block --}}
+            <div class="flex gap-3 p-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-900/30 rounded-lg text-xs text-violet-700 dark:text-violet-300">
+                <svg class="w-4 h-4 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    This will <strong>truncate</strong> the <code class="bg-violet-100 dark:bg-violet-900 px-1 rounded font-mono">labour_codes</code> table then re-read every
+                    <code class="bg-violet-100 dark:bg-violet-900 px-1 rounded font-mono">Data Operation DMS *.xls</code> file and re-insert all rows.
+                    The process may take <strong>1–3 minutes</strong> depending on file count.
+                </div>
+            </div>
+
+            {{-- Result / last run summary --}}
+            <div x-show="result || finishedAt" x-cloak class="flex items-center justify-between text-xs text-slate-500">
+                <span x-show="result" x-text="'Result: ' + result"></span>
+                <span x-show="finishedAt" x-text="'Finished: ' + finishedAt"></span>
+            </div>
+
+            {{-- Run button --}}
+            <button @click="run()" :disabled="running"
+                class="w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                :class="running
+                    ? 'bg-violet-100 text-violet-500 dark:bg-violet-900/30 dark:text-violet-400'
+                    : 'bg-violet-600 text-white hover:bg-violet-700 shadow-lg shadow-violet-200 dark:shadow-none'">
+                <svg :class="running ? 'animate-spin' : ''" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <span x-text="running ? 'Processing... Please wait' : 'Run Rebuild Now'"></span>
+            </button>
+
+            {{-- Elapsed timer --}}
+            <div x-show="running" x-cloak class="text-center text-xs text-violet-500 dark:text-violet-400" x-text="'Elapsed: ' + elapsed + 's'"></div>
+
+            {{-- Log output --}}
+            <div x-show="log" x-cloak
+                 class="bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
+                <div class="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+                    <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Script Output</span>
+                    <button @click="log = ''" class="text-slate-500 hover:text-slate-300 text-xs">✕ Clear</button>
+                </div>
+                <pre class="px-4 py-3 text-xs font-mono text-emerald-400 overflow-auto max-h-64 whitespace-pre-wrap"
+                     x-text="log"></pre>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- ═══ DATABASE MANAGEMENT ═══ --}}
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-        <form action="{{ route('settings.update') }}" method="POST" class="p-6 space-y-6">
-            @csrf
-            
-            <div class="space-y-4">
-                <h3 class="text-lg font-semibold border-b border-slate-200 dark:border-slate-700 pb-2">General Settings</h3>
-                
-                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                    <div>
-                        <p class="font-medium">Show Dashboard</p>
-                        <p class="text-xs text-slate-500 mt-1">When enabled, the dashboard will be shown as the landing page. If disabled, you'll be redirected to the Import page.</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" name="show_dashboard" value="1" {{ $settings['show_dashboard'] === '1' ? 'checked' : '' }} class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600"></div>
-                    </label>
-                </div>
 
-                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                    <div>
-                        <p class="font-medium text-amber-600 dark:text-amber-500">Empty before Sync</p>
-                        <p class="text-xs text-slate-500 mt-1">If enabled, the local database will be cleared automatically every time you fetch new data from Odoo.</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" name="empty_before_sync" value="1" {{ $settings['empty_before_sync'] === '1' ? 'checked' : '' }} class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
-                    </label>
-                </div>
-
-                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                    <div>
-                        <p class="font-medium text-blue-600 dark:text-blue-500">Enable PDF Watermark</p>
-                        <p class="text-xs text-slate-500 mt-1">If enabled, a "DUPLICATE" watermark will be shown on printed PDFs that have been printed more than once. Tracking remains active regardless.</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" name="enable_pdf_watermark" value="1" {{ $settings['enable_pdf_watermark'] === '1' ? 'checked' : '' }} class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
-                    </label>
-                </div>
-
-                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                    <div>
-                        <p class="font-medium text-violet-600 dark:text-violet-500">Enable Deep Sync (Vendor Bill)</p>
-                        <p class="text-xs text-slate-500 mt-1">If enabled, the system will perform extra lookups in Odoo to find the Vendor Bill number for payment journals. This makes synchronization slower but more complete.</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" name="odoo_deep_sync_journal" value="1" {{ $settings['odoo_deep_sync_journal'] === '1' ? 'checked' : '' }} class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 dark:peer-focus:ring-violet-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-violet-600"></div>
-                    </label>
-                </div>
-
-                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">
-                    <div>
-                        <p class="font-medium text-indigo-600 dark:text-indigo-500">Journal Print Paper Size</p>
-                        <p class="text-xs text-slate-500 mt-1">Select the default paper size for printing Journal Entries. A4 will print 2 entries per page.</p>
-                    </div>
-                    <div>
-                        <select name="journal_paper_size" class="px-8 py-1.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[right_8px_center] bg-no-repeat cursor-pointer">
-                            <option value="A5" {{ $settings['journal_paper_size'] === 'A5' ? 'selected' : '' }}>A5 (1-up)</option>
-                            <option value="A4" {{ $settings['journal_paper_size'] === 'A4' ? 'selected' : '' }}>A4 (2-up)</option>
-                        </select>
-                    </div>
-                </div>
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+            <div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
             </div>
-
-            <div class="space-y-4">
-                <h3 class="text-lg font-semibold border-b border-slate-200 dark:border-slate-700 pb-2">Invoice Defaults</h3>
-                <p class="text-xs text-slate-500">These values are used as fallback when Odoo does not provide them (e.g. BC Manager / SPV not set in Odoo).</p>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Default BC Manager</label>
-                        <input type="text" name="default_bc_manager"
-                            value="{{ $settings['default_bc_manager'] }}"
-                            placeholder="e.g. LISA IBRAHIM"
-                            class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 transition uppercase">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Default BC SPV</label>
-                        <input type="text" name="default_bc_spv"
-                            value="{{ $settings['default_bc_spv'] }}"
-                            placeholder="e.g. PURNIASIH"
-                            class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 transition uppercase">
-                    </div>
-                </div>
+            <div>
+                <h3 class="text-base font-semibold text-red-700 dark:text-red-400">Database Management</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Destructive operations — cannot be undone</p>
             </div>
+        </div>
 
-            <div class="pt-4 flex items-center justify-between">
-                <button type="submit" class="px-6 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm">
-                    Save Changes
-                </button>
-            </div>
-        </form>
-
-        <div class="px-6 pb-6 pt-2 border-t border-slate-200 dark:border-slate-700 space-y-4">
-            <h3 class="text-lg font-semibold text-red-600 dark:text-red-400">Database Management</h3>
+        <div class="px-6 py-5 space-y-3">
             <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/30">
                 <p class="text-sm text-red-800 dark:text-red-300 font-medium">Clear All Local Data</p>
                 <p class="text-xs text-red-600 dark:text-red-400/80 mt-1">This will permanently delete all local journal entries and lines. This action cannot be undone.</p>
-                
-                <form action="{{ route('settings.empty-database') }}" method="POST" class="mt-4" onsubmit="return confirm('Are you sure you want to empty the entire database? This action is permanent.');">
+
+                <form action="{{ route('settings.empty-database') }}" method="POST" class="mt-4"
+                      x-data="{ confirming: false }"
+                      @submit.prevent="if(confirming) { $el.submit() } else { confirming = true; setTimeout(() => confirming = false, 5000); }">
                     @csrf
-                    <button type="submit" class="px-4 py-2 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition-colors">
-                        Empty Database Now
+                    <button type="submit"
+                        :class="confirming ? 'bg-red-700 ring-2 ring-red-400 ring-offset-1 animate-pulse' : 'bg-red-600'"
+                        class="px-4 py-2 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-all">
+                        <span x-text="confirming ? '⚠ Click again to confirm — this is irreversible!' : 'Empty Database Now'"></span>
                     </button>
                 </form>
             </div>
         </div>
 
-        @if(auth()->user()->role === 'admin')
-        {{-- ═══ ODOO CONFIGURATION (ADMIN ONLY) ═══ --}}
-        <div class="px-6 py-6 border-t border-slate-200 dark:border-slate-700 space-y-6" x-data="odooConfigManager()">
-            <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200">Odoo Integration</h3>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {{-- Connection Card --}}
-                <div class="space-y-4">
-                    <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Odoo Configuration</h4>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Server URL</label>
-                            <input type="url" x-model="config.url" placeholder="https://your-odoo.com"
-                                class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Database</label>
-                            <input type="text" x-model="config.db" placeholder="odoo_db"
-                                class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Username / Email</label>
-                            <input type="text" x-model="config.user" placeholder="admin@example.com"
-                                class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Password / API Key</label>
-                            <input type="password" x-model="config.password" placeholder="••••••••"
-                                class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 transition">
-                        </div>
-
-                        <div class="flex gap-3 pt-2">
-                            <button @click="saveConfig()" :disabled="saving" class="flex-1 py-2 bg-slate-600 text-white text-xs font-bold rounded hover:bg-slate-700 transition-colors disabled:opacity-50">
-                                <span x-text="saving ? 'SAVING...' : 'SAVE CONFIG'"></span>
-                            </button>
-                            <button @click="testConnection()" :disabled="testing" class="flex-1 py-2 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700 transition-colors disabled:opacity-50">
-                                <span x-text="testing ? 'TESTING...' : 'TEST CONNECTION'"></span>
-                            </button>
-                        </div>
-
-                        <div x-show="configMsg" x-cloak x-transition class="p-3 rounded-lg text-xs" :class="configMsgType === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'">
-                            <span x-text="configMsg"></span>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Schedule Card --}}
-                <div class="space-y-4">
-                    <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Auto-Sync Schedule</h4>
-                    <div class="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-4">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium">Enable Auto-Sync</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" x-model="schedule.enabled" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-violet-600"></div>
-                            </label>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase">Interval</label>
-                            <select x-model="schedule.interval" :disabled="!schedule.enabled" class="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-violet-500 focus:border-violet-500 transition disabled:opacity-50">
-                                <option value="hourly">Every Hour</option>
-                                <option value="every_2_hours">Every 2 Hours</option>
-                                <option value="every_4_hours">Every 4 Hours</option>
-                                <option value="every_6_hours">Every 6 Hours</option>
-                                <option value="every_12_hours">Every 12 Hours</option>
-                                <option value="daily">Daily</option>
-                            </select>
-                        </div>
-
-                        <button @click="saveSchedule()" :disabled="scheduleSaving" class="w-full py-2 bg-violet-600 text-white text-xs font-bold rounded hover:bg-violet-700 transition-colors disabled:opacity-50">
-                            <span x-text="scheduleSaving ? 'SAVING...' : 'SAVE SCHEDULE'"></span>
-                        </button>
-                        
-                        <div x-show="scheduleMsg" x-cloak x-transition class="text-xs text-center" :class="scheduleMsgType === 'success' ? 'text-emerald-500' : 'text-red-500'" x-text="scheduleMsg"></div>
-                        
-                        <div x-show="schedule.lastSync" class="text-[10px] text-slate-500 text-center uppercase tracking-tight">
-                            Last sync: <span x-text="schedule.lastSync"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <script>
-        function odooConfigManager() {
-            return {
-                config: {
-                    url: @json($odooConfig['url']),
-                    db: @json($odooConfig['db']),
-                    user: @json($odooConfig['user']),
-                    password: @json($odooConfig['password']),
-                },
-                schedule: @json($schedule),
-                saving: false,
-                testing: false,
-                configMsg: '',
-                configMsgType: '',
-                scheduleSaving: false,
-                scheduleMsg: '',
-                scheduleMsgType: '',
-
-                async saveConfig() {
-                    this.saving = true;
-                    this.configMsg = '';
-                    try {
-                        const resp = await fetch('{{ route("admin.settings.odoo.config", [], false) }}', {
-                            method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json', 
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
-                            },
-                            body: JSON.stringify({ odoo_url: this.config.url, odoo_db: this.config.db, odoo_user: this.config.user, odoo_password: this.config.password })
-                        });
-                        const data = await resp.json();
-                        this.configMsg = data.message || 'Validation error or invalid config.';
-                        this.configMsgType = data.success ? 'success' : 'error';
-                    } catch (e) { this.configMsg = 'Request failed. Ensure URL includes http:// or https://'; this.configMsgType = 'error'; }
-                    this.saving = false;
-                    setTimeout(() => this.configMsg = '', 4000);
-                },
-
-                async testConnection() {
-                    this.testing = true;
-                    this.configMsg = '';
-                    try {
-                        const resp = await fetch('{{ route("admin.settings.odoo.test", [], false) }}', {
-                            method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json', 
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
-                            }
-                        });
-                        const data = await resp.json();
-                        this.configMsg = data.message || 'Connection failed';
-                        this.configMsgType = data.success ? 'success' : 'error';
-                    } catch (e) { this.configMsg = 'Server Error determining connection.'; this.configMsgType = 'error'; }
-                    this.testing = false;
-                },
-
-                async saveSchedule() {
-                    this.scheduleSaving = true;
-                    this.scheduleMsg = '';
-                    try {
-                        const resp = await fetch('{{ route("admin.settings.odoo.schedule.save", [], false) }}', {
-                            method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json', 
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
-                            },
-                            body: JSON.stringify({ enabled: this.schedule.enabled, interval: this.schedule.interval })
-                        });
-                        const data = await resp.json();
-                        this.scheduleMsg = data.message || 'Validation error.';
-                        this.scheduleMsgType = data.success ? 'success' : 'error';
-                    } catch (e) { this.scheduleMsg = 'Schedule save failed.'; this.scheduleMsgType = 'error'; }
-                    this.scheduleSaving = false;
-                    setTimeout(() => this.scheduleMsg = '', 3000);
-                }
-            }
-        }
-        </script>
-        @endif
     </div>
+
 </div>
+
+<script>
+function labourRebuild() {
+    return {
+        status: 'idle',
+        statusLabel: 'Idle',
+        running: false,
+        result: '',
+        log: '',
+        finishedAt: '',
+        elapsed: 0,
+        _timer: null,
+        _pollTimer: null,
+
+        init() {
+            // On load, check if a previous run result exists
+            fetch('{{ route("settings.rebuild-status") }}')
+                .then(r => r.json())
+                .then(d => this.applyState(d))
+                .catch(() => {});
+        },
+
+        async run() {
+            if (this.running) return;
+
+            this.running = true;
+            this.status  = 'running';
+            this.statusLabel = 'Running';
+            this.log = '';
+            this.result = '';
+            this.finishedAt = '';
+            this.elapsed = 0;
+
+            // Elapsed counter
+            this._timer = setInterval(() => this.elapsed++, 1000);
+
+            try {
+                const resp = await fetch('{{ route("settings.rebuild-labour-codes") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    }
+                });
+                const data = await resp.json();
+                this.applyState(data);
+            } catch (e) {
+                this.status = 'error';
+                this.statusLabel = 'Error';
+                this.log = 'Request failed: ' + e.message;
+            } finally {
+                this.running = false;
+                clearInterval(this._timer);
+            }
+        },
+
+        applyState(d) {
+            this.status     = d.status ?? 'idle';
+            this.result     = d.result ?? '';
+            this.log        = d.log ?? '';
+            this.finishedAt = d.finished_at ?? '';
+            this.running    = d.running ?? false;
+
+            const labels = {
+                idle: 'Idle', running: 'Running',
+                success: 'Success ✓', error: 'Error ✗', already_running: 'Already Running'
+            };
+            this.statusLabel = labels[this.status] ?? this.status;
+        }
+    }
+}
+</script>
 @endsection

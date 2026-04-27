@@ -44,7 +44,26 @@ return new class extends Migration
             $table->decimal('AMTRS', 15, 2)->default(0);
             $table->decimal('PTAX', 8, 2)->nullable();
             
+            $table->unsignedBigInteger('customer_id')->nullable()->index()
+                  ->comment('Resolved global customer ID');
+            $table->unsignedBigInteger('vehicle_id')->nullable()->index()
+                  ->comment('Resolved global vehicle ID');
+            $table->string('source', 100)->nullable()
+                  ->comment('Branch where this invoice was issued, e.g. HRMSBY PC');
+            
             $table->timestamps();
+
+            // Note: FKs are not strict here because service histories might be imported 
+            // before master data in some flows, but logically they point to the master tables.
+            $table->foreign('customer_id')
+                  ->references('id')
+                  ->on('master_customers')
+                  ->nullOnDelete();
+                  
+            $table->foreign('vehicle_id')
+                  ->references('id')
+                  ->on('master_vehicles')
+                  ->nullOnDelete();
         });
     }
 

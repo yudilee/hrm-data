@@ -11,6 +11,13 @@ use Carbon\Carbon;
 
 class VehicleImport implements ToModel, WithHeadingRow, WithUpserts
 {
+    protected string $source;
+
+    public function __construct(string $source)
+    {
+        $this->source = $source;
+    }
+
     public function model(array $row)
     {
         $customerMagic = (int) ($row['customer_magic'] ?? 0);
@@ -38,6 +45,7 @@ class VehicleImport implements ToModel, WithHeadingRow, WithUpserts
             'created_date'      => $this->parseDate($row['ceated_date'] ?? null), // Note the typo 'ceated' from the Excel/Python script
             'last_edited_date'  => $this->parseDate($row['last_edited_date'] ?? null),
             'last_service_date' => $this->parseDate($row['last_service_date'] ?? null),
+            'source'            => $this->source,
         ]);
     }
 
@@ -48,9 +56,6 @@ class VehicleImport implements ToModel, WithHeadingRow, WithUpserts
 
     private function ensureCustomerExists($magic, $row)
     {
-        // FirstOrCreate to avoid overwriting real customer data if it exists
-        // but ensure a record exists to satisfy FK constraints.
-        // We use source='vehicle_import' to mark placeholders.
         if (!MasterCustomer::where('magic_cust', $magic)->exists()) {
             $a1 = $this->cleanStr($row['address1'] ?? null);
             $a2 = $this->cleanStr($row['address2'] ?? null);
@@ -75,7 +80,7 @@ class VehicleImport implements ToModel, WithHeadingRow, WithUpserts
                 'telp_2'       => $this->cleanPhone($row['phone2'] ?? null),
                 'telp_3'       => $this->cleanPhone($row['phone3'] ?? null),
                 'telp_4'       => $this->cleanPhone($row['phone4'] ?? null),
-                'source'       => 'vehicle_import',
+                'source'       => $this->source,
             ]);
         }
     }

@@ -29,9 +29,18 @@ class LabourCodeController extends Controller
             ->orderBy('code')
             ->get();
 
+        $vehicle_id = null;
+        if (strlen($chassis) >= 17) {
+            $vehicle = \App\Models\MasterVehicle::where('chassis_no', $chassis)->first();
+            if ($vehicle) {
+                $vehicle_id = $vehicle->id;
+            }
+        }
+
         return response()->json([
             'model_prefix' => $prefix,
             'total_results' => $codes->count(),
+            'vehicle_id' => $vehicle_id,
             'data' => $codes
         ]);
     }

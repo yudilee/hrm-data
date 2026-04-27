@@ -10,6 +10,13 @@ use Carbon\Carbon;
 
 class CustomerImport implements ToModel, WithHeadingRow, WithUpserts
 {
+    protected string $source;
+
+    public function __construct(string $source)
+    {
+        $this->source = $source;
+    }
+
     public function model(array $row)
     {
         $a1 = $this->cleanStr($row['address_1'] ?? null);
@@ -41,7 +48,7 @@ class CustomerImport implements ToModel, WithHeadingRow, WithUpserts
             'telp_3'       => $this->cleanPhone($row['telp_03'] ?? null),
             'telp_4'       => $this->cleanPhone($row['telp_04'] ?? null),
             'date_created' => $this->parseDate($row['date_created'] ?? null),
-            'source'       => 'customer_import',
+            'source'       => $this->source,
         ]);
     }
 
@@ -68,7 +75,6 @@ class CustomerImport implements ToModel, WithHeadingRow, WithUpserts
     {
         if (!$val) return null;
         try {
-            // Excel dates can be numeric or strings
             if (is_numeric($val)) {
                 return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($val);
             }

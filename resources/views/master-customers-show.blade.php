@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($customer->name ?: 'Customer Detail') . ' - RTS Master Data System')
+@section('title', ($customer->name ?: 'Customer Detail') . ' - Dealership MasterData Hub Data System')
 
 @section('breadcrumb')
 <li class="inline-flex items-center">
@@ -28,7 +28,7 @@
                         Customer Profile
                     </span>
                     <span class="h-4 w-px bg-gray-200 dark:bg-slate-700"></span>
-                    <span class="text-xs font-mono text-gray-400 dark:text-slate-500">{{ $customer->magic_cust }}</span>
+                    <span class="text-xs font-mono text-gray-400 dark:text-slate-500">ID: {{ $customer->id }}</span>
                     @if($customer->source === 'vehicle_import')
                         <span class="inline-flex items-center rounded-lg bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 ring-1 ring-inset ring-amber-600/20 dark:ring-amber-500/30 uppercase">Legacy record</span>
                     @endif
@@ -87,8 +87,8 @@
                             <p class="text-lg font-bold text-indigo-600 dark:text-indigo-400">{{ $customer->email ?: '-' }}</p>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Customer ID (Magic)</label>
-                            <p class="text-lg font-mono font-bold text-gray-900 dark:text-white">{{ $customer->magic_cust }}</p>
+                            <label class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">System ID</label>
+                            <p class="text-lg font-mono font-bold text-gray-900 dark:text-white">#{{ $customer->id }}</p>
                         </div>
                     </div>
 
@@ -110,30 +110,21 @@
                 </div>
             </div>
 
-            <!-- Assets Section -->
-            <div class="rounded-2xl bg-white dark:bg-slate-800 p-8 shadow-sm ring-1 ring-gray-200 dark:ring-slate-700">
-                <div class="flex items-center justify-between mb-8">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"></path>
-                            </svg>
-                        </div>
-                        Registered Vehicles
-                    </h3>
-                    <span class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-bold px-3 py-1 rounded-full">{{ $customer->vehicles->count() }} Total</span>
-                </div>
-
                 @if($customer->vehicles->count() > 0)
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @foreach($customer->vehicles as $vehicle)
-                    <a href="{{ route('master-vehicles.show', $vehicle->magic) }}" class="flex items-center justify-between p-6 rounded-2xl bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-xl dark:shadow-none hover:shadow-indigo-100 transition-all group">
+                    <a href="{{ route('master-vehicles.show', $vehicle->id) }}" class="flex items-center justify-between p-6 rounded-2xl bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-xl dark:shadow-none hover:shadow-indigo-100 transition-all group">
                         <div class="space-y-1">
                             <p class="text-lg font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{{ $vehicle->registration_no ?: '(No Plate)' }}</p>
                             <p class="text-sm text-gray-500 dark:text-slate-400 font-medium">{{ $vehicle->description ?: 'Unknown Model' }}</p>
                             <div class="flex items-center gap-2 mt-2">
                                 <span class="text-[10px] font-mono font-bold text-gray-400 dark:text-slate-500 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-gray-100 dark:border-slate-700">VIN: {{ substr($vehicle->chassis_no, 0, 8) }}...</span>
+                                @if($vehicle->last_service_date)
+                                <span class="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-800" title="Last Service Date">
+                                    <svg class="w-3 h-3 inline-block -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    {{ $vehicle->last_service_date->format('M Y') }}
+                                </span>
+                                @endif
                             </div>
                         </div>
                         <svg class="w-5 h-5 text-gray-300 group-hover:text-indigo-500 transform group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,6 +138,78 @@
                     <p class="text-gray-400 dark:text-slate-500 italic">No vehicles registered to this customer.</p>
                 </div>
                 @endif
+            </div>
+
+            <!-- Maintenance History Section -->
+            <div class="rounded-2xl bg-white dark:bg-slate-800 p-8 shadow-sm ring-1 ring-gray-200 dark:ring-slate-700">
+                <div class="flex items-center justify-between mb-8">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        Maintenance History
+                    </h3>
+                    <span class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">{{ $customer->vehicleServiceHistories->count() }} Total Services</span>
+                </div>
+
+                <div class="space-y-4">
+                    @forelse($customer->vehicleServiceHistories as $history)
+                    <div class="flex items-start gap-6 p-6 rounded-2xl bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all group">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase">{{ $history->DINVN ? $history->DINVN->format('M') : '???' }}</span>
+                            <span class="text-2xl font-black text-gray-900 dark:text-white">{{ $history->DINVN ? $history->DINVN->format('d') : '??' }}</span>
+                            <span class="text-xs font-bold text-gray-400 dark:text-slate-500">{{ $history->DINVN ? $history->DINVN->format('Y') : '????' }}</span>
+                        </div>
+                        <div class="flex-1 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    @if($history->vehicle_id)
+                                    <a href="{{ route('master-vehicles.show', $history->vehicle_id) }}?search={{ urlencode($history->CINVN) }}" class="text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 group" title="View on Vehicle Profile">
+                                        {{ $history->CINVN ?: 'No Invoice' }}
+                                        <svg class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                    </a>
+                                    @else
+                                    <span class="text-sm font-bold text-gray-900 dark:text-white">{{ $history->CINVN ?: 'No Invoice' }}</span>
+                                    @endif
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ str_starts_with($history->source, 'HRM') ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' }}">
+                                        {{ $history->source }}
+                                    </span>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-bold text-gray-900 dark:text-white">KM: {{ number_format($history->EKMPOS) }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-2">
+                                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"></path>
+                                </svg>
+                                <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">{{ $history->CNPOL }} ({{ $history->CHASN }})</span>
+                            </div>
+
+                            @if(count($history->labours) > 0)
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                @foreach(collect($history->labours)->take(3) as $labour)
+                                    <span class="inline-flex items-center rounded-lg bg-gray-100 dark:bg-slate-800 px-2 py-1 text-[10px] font-medium text-gray-600 dark:text-slate-400 border border-gray-200 dark:border-slate-700">
+                                        {{ $labour->description ?: $labour->code }}
+                                    </span>
+                                @endforeach
+                                @if(count($history->labours) > 3)
+                                    <span class="text-[10px] text-gray-400 font-bold px-1">+{{ count($history->labours) - 3 }} more</span>
+                                @endif
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @empty
+                    <div class="text-center py-12 rounded-2xl border-2 border-dashed border-gray-100 dark:border-slate-700">
+                        <p class="text-gray-400 dark:text-slate-500 italic">No maintenance history found for this customer's vehicles.</p>
+                    </div>
+                    @endforelse
+                </div>
             </div>
         </div>
 
@@ -223,4 +286,21 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let rv = [];
+        try { rv = JSON.parse(localStorage.getItem('recently_viewed')) || []; } catch(e) {}
+        rv = rv.filter(i => i.url !== window.location.pathname);
+        rv.unshift({
+            name: '{{ addslashes($customer->name ?: "Customer " . $customer->id) }}',
+            url: window.location.pathname,
+            type: 'customer'
+        });
+        if(rv.length > 5) rv.pop();
+        localStorage.setItem('recently_viewed', JSON.stringify(rv));
+    });
+</script>
+@endpush
 @endsection

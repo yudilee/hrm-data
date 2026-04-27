@@ -17,4 +17,14 @@ class ServiceHistoryLabour extends Model
     {
         return $this->belongsTo(ServiceHistory::class, 'service_history_id', 'id');
     }
+
+    public function getDescriptionAttribute()
+    {
+        return $this->EMJOB;
+    }
+
+    public function getCodeAttribute()
+    {
+        return $this->CDJOB;
+    }
 }

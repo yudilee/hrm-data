@@ -19,6 +19,9 @@ services:
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
         volumes:
             - '.:/var/www/html'
+            - '../vehicle history:/var/www/html/vehicle history'
+            - '../data cust:/home/yudi/dev/rts_code/data cust'
+            - '../lvs:/home/yudi/dev/rts_code/lvs'
         networks:
             - sail
         depends_on:
