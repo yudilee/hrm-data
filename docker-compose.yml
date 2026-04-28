@@ -20,8 +20,8 @@ services:
       - QUEUE_CONNECTION=database
       - CACHE_STORE=database
       - APP_KEY=${APP_KEY}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_USERNAME=${DB_USERNAME:-sail}
+      - DB_PASSWORD=${DB_PASSWORD:-}
     volumes:
       - public-assets:/var/www/html/public
       - storage-data:/var/www/html/storage
