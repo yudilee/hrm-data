@@ -1,9 +1,10 @@
 services:
   app:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
-    command: sh -c "cp -rp /opt/public_backup/* /var/www/html/public/ && php-fpm"
+    command: sh -c "cp -rp /opt/public_backup/* /var/www/html/public/ && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan migrate --force && php-fpm"
     depends_on:
       - db
     environment:
@@ -28,6 +29,7 @@ services:
       - hrm-network
 
   nginx:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
@@ -41,6 +43,7 @@ services:
       - hrm-network
 
   db:
+    restart: unless-stopped
     image: mysql:8.0
     ports:
       - "3311:3306"
@@ -49,7 +52,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-}
       MYSQL_USER: ${DB_USERNAME:-sail}
       MYSQL_PASSWORD: ${DB_PASSWORD:-}
-      MYSQL_ALLOW_EMPTY_PASSWORD: '1'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
     volumes:
       - db_data:/var/lib/mysql
     networks:
