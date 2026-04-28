@@ -20,7 +20,7 @@ services:
       - QUEUE_CONNECTION=database
       - CACHE_STORE=database
       - APP_KEY=${APP_KEY}
-      - DB_USERNAME=${DB_USERNAME:-sail}
+      - DB_USERNAME=${DB_USERNAME:-root}
       - DB_PASSWORD=${DB_PASSWORD:-}
     volumes:
       - public-assets:/var/www/html/public
@@ -50,7 +50,7 @@ services:
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-hrm_data}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-}
-      MYSQL_USER: ${DB_USERNAME:-sail}
+      MYSQL_USER: ${DB_USERNAME:-root}
       MYSQL_PASSWORD: ${DB_PASSWORD:-}
       MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
     volumes:
