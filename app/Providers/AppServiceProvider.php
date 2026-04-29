@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,5 +39,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Password strength defaults
         Password::defaults(fn () => Password::min(8));
+
+        // Allow access to Scramble API documentation in all environments
+        Gate::define('viewApiDocs', function (?$user) {
+            // Return true to make docs public, or add logic to restrict it
+            return true;
+        });
     }
 }
