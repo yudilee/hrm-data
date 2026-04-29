@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
         Password::defaults(fn () => Password::min(8));
 
         // Allow access to Scramble API documentation in all environments
-        Gate::define('viewApiDocs', function (?$user) {
+        Gate::define('viewApiDocs', function ($user = null) {
             // Return true to make docs public, or add logic to restrict it
             return true;
         });
