@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -45,5 +46,10 @@ class AppServiceProvider extends ServiceProvider
             // Return true to make docs public, or add logic to restrict it
             return true;
         });
+
+        // Force HTTPS behind Traefik/Reverse Proxy in production
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
     }
 }
