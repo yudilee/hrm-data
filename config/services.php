@@ -52,7 +52,7 @@ return [
     'odoo' => [
         'shared_secret' => env('ODOO_SHARED_SECRET'),
         'webhook_secret' => env('ODOO_WEBHOOK_SECRET'),
-        'allowed_callback_hosts' => array_filter(explode(',', env('ODOO_ALLOWED_CALLBACK_HOSTS', ''))),
+        'allowed_callback_hosts' => array_map('trim', array_filter(explode(',', env('ODOO_ALLOWED_CALLBACK_HOSTS', '')))),
         'url_expiry_seconds' => (int) env('ODOO_URL_EXPIRY_SECONDS', 300),
     ],
 
