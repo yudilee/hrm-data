@@ -31,12 +31,13 @@ class VerifyOdooSignature
         // 1. Check expiry
         $exp = (int) $request->input('exp', 0);
         if (time() > $exp) {
+            $timeInfo = "Server: " . date('Y-m-d H:i:s') . " (UTC). Link Exp: " . date('Y-m-d H:i:s', $exp) . " (UTC)";
             Log::channel('security')->warning('Odoo signed URL expired', [
                 'exp' => $exp,
                 'now' => time(),
                 'ip' => $request->ip(),
             ]);
-            abort(403, 'This link has expired. Please try again from Odoo.');
+            abort(403, "This link has expired. Please try again from Odoo. ($timeInfo)");
         }
 
         // 2. Verify HMAC signature
