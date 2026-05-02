@@ -133,33 +133,89 @@
         @endif
     </div>
 
-    {{-- API Quick Reference --}}
-    <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
-        <h3 class="font-semibold mb-3 text-slate-700 dark:text-slate-300">Quick Reference — API v2 Endpoints</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-mono">
-            @php
-            $endpoints = [
-                'GET /api/health'                            => 'Health check (no auth)',
-                'GET /api/v2/auth/me'                        => 'Current token info',
-                'GET /api/v2/customers'                      => 'List customers',
-                'GET /api/v2/vehicles'                       => 'List vehicles',
-                'GET /api/v2/service-histories'              => 'List service records',
-                'GET /api/v2/suppliers'                      => 'List suppliers',
-                'GET /api/v2/labour-codes'                   => 'Search labour codes',
-                'GET /api/v2/search?q='                      => 'Global search',
-            ];
-            @endphp
-            @foreach($endpoints as $endpoint => $desc)
-            <div class="flex items-baseline gap-2">
-                <code class="text-indigo-600 dark:text-indigo-400 text-xs">{{ $endpoint }}</code>
-                <span class="text-slate-500 dark:text-slate-400 text-xs shrink-0">— {{ $desc }}</span>
-            </div>
-            @endforeach
+    {{-- How to Use Your Token --}}
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+            <h2 class="text-lg font-semibold flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                How to Use Your Token
+            </h2>
         </div>
-        <p class="mt-4 text-xs text-slate-500">
-            Use <code class="bg-slate-200 dark:bg-slate-800 px-1 rounded">Authorization: Bearer {token}</code> header.
-            Full docs at <a href="/docs/api" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">/docs/api</a>.
-        </p>
+        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {{-- Authentication Section --}}
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">1. Authentication Header</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Include your token in the <code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Authorization</code> header as a Bearer token.</p>
+                    <div class="bg-slate-900 rounded-lg p-4 font-mono text-xs text-indigo-300 border border-slate-700">
+                        Authorization: Bearer <span class="text-emerald-400">your_token_here</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">2. Available Endpoints (v2)</h4>
+                    <div class="space-y-2">
+                        @php
+                        $apiEndpoints = [
+                            'GET /api/v2/customers' => 'read:customers',
+                            'GET /api/v2/vehicles' => 'read:vehicles',
+                            'GET /api/v2/service-histories' => 'read:service-histories',
+                            'GET /api/v2/suppliers' => 'read:suppliers',
+                            'GET /api/v2/labour-codes' => 'read:labour-codes',
+                            'GET /api/v2/search' => 'search',
+                        ];
+                        @endphp
+                        @foreach($apiEndpoints as $path => $ability)
+                        <div class="flex items-center justify-between gap-4 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                            <code class="text-xs text-indigo-600 dark:text-indigo-400 font-bold">{{ $path }}</code>
+                            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">{{ $ability }}</span>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            {{-- Examples Section --}}
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">3. cURL Example</h4>
+                    <div class="bg-slate-900 rounded-lg p-4 font-mono text-[11px] text-slate-300 border border-slate-700 leading-relaxed overflow-x-auto">
+                        <span class="text-purple-400">curl</span> -X GET <span class="text-emerald-400">"https://hrm-data.hartonomotor-group.com/api/v2/customers"</span> \<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp; -H <span class="text-emerald-400">"Authorization: Bearer your_token_here"</span> \<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp; -H <span class="text-emerald-400">"Accept: application/json"</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">4. Best Practices & Limits</h4>
+                    <ul class="text-xs space-y-2.5 text-slate-600 dark:text-slate-400">
+                        <li class="flex gap-2">
+                            <span class="text-emerald-500 font-bold">✓</span>
+                            <span><strong>Rate Limit:</strong> 60 requests per minute (Standard User).</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="text-emerald-500 font-bold">✓</span>
+                            <span><strong>Expiration:</strong> Use specific expiry dates for temporary scripts.</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="text-amber-500 font-bold">!</span>
+                            <span><strong>Security:</strong> Never commit tokens to public repositories (git).</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="text-indigo-500 font-bold">ℹ</span>
+                            <span><strong>Audit:</strong> All requests are logged with your User ID and IP address.</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="pt-2">
+                    <a href="/docs/api" target="_blank" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                        View Full API Interactive Documentation
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-0L10 14"/></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
