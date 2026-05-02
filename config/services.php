@@ -54,6 +54,7 @@ return [
         'webhook_secret' => env('ODOO_WEBHOOK_SECRET'),
         'allowed_callback_hosts' => array_map('trim', array_filter(explode(',', env('ODOO_ALLOWED_CALLBACK_HOSTS', '')))),
         'url_expiry_seconds' => (int) env('ODOO_URL_EXPIRY_SECONDS', 300),
+        'skew_tolerance_seconds' => (int) env('ODOO_SKEW_TOLERANCE_SECONDS', 30),
     ],
 
 ];

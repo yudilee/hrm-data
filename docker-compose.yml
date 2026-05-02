@@ -26,6 +26,8 @@ services:
       - ODOO_WEBHOOK_SECRET=${ODOO_WEBHOOK_SECRET}
       - ODOO_ALLOWED_CALLBACK_HOSTS=${ODOO_ALLOWED_CALLBACK_HOSTS}
       - ODOO_URL_EXPIRY_SECONDS=${ODOO_URL_EXPIRY_SECONDS:-300}
+      - ODOO_SKEW_TOLERANCE_SECONDS=${ODOO_SKEW_TOLERANCE_SECONDS:-30}
+      - TZ=UTC
     volumes:
       - public-assets:/var/www/html/public
       - storage-data:/var/www/html/storage

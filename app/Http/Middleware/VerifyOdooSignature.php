@@ -28,10 +28,11 @@ class VerifyOdooSignature
             abort(503, 'Odoo integration is not configured.');
         }
 
-        // 1. Check expiry
+        // 1. Check expiry (with clock skew tolerance for cross-host Docker deployments)
         $exp = (int) $request->input('exp', 0);
-        if (time() > $exp) {
-            $timeInfo = "Server: " . date('Y-m-d H:i:s') . " (UTC). Link Exp: " . date('Y-m-d H:i:s', $exp) . " (UTC)";
+        $skewTolerance = config('services.odoo.skew_tolerance_seconds', 30);
+        if (time() - $skewTolerance > $exp) {
+            $timeInfo = "Server: " . gmdate('Y-m-d H:i:s') . " UTC. Link Exp: " . gmdate('Y-m-d H:i:s', $exp) . " UTC";
             Log::channel('security')->warning('Odoo signed URL expired', [
                 'exp' => $exp,
                 'now' => time(),

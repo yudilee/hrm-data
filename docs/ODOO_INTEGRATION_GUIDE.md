@@ -695,6 +695,70 @@ if not existing:
 
 ---
 
+## Troubleshooting: Clock Drift
+
+When the Odoo mock app (or real Odoo) and RTS run in Docker containers on **different hosts**, their system clocks may drift apart. This causes signed URLs to be rejected as "Expired" even with generous expiry windows.
+
+### Root Cause
+
+- `time.time()` in Python and `time()` in PHP both return the kernel's real-time clock
+- Docker containers inherit the host's clock — they have NO independent time source
+- If hosts A and B are not NTP-synchronized, their clocks drift
+- The URL `exp` parameter is generated on host A but verified on host B
+
+### Built-in Fixes
+
+RTS includes two protections against clock drift:
+
+1. **Clock skew tolerance** (`ODOO_SKEW_TOLERANCE_SECONDS`, default 30s) — allows the receiver's clock to be slightly ahead of the sender's
+2. **UTC enforcement** (`TZ=UTC`) — ensures both containers use UTC for time calculations
+
+### Diagnosing Clock Drift
+
+Run the diagnostic script on **both** Docker hosts:
+
+```bash
+# On the Odoo host (mock or real)
+bash scripts/check_ntp_sync.sh
+
+# On the RTS host
+bash scripts/check_ntp_sync.sh
+```
+
+Compare the `Current UTC timestamp` values. They should differ by no more than a few seconds.
+
+### Fixing NTP Sync
+
+If the script reports "NOT synchronized":
+
+```bash
+# Check current status
+timedatectl status
+
+# Enable NTP
+sudo timedatectl set-ntp true
+
+# Install chrony if not present (most reliable)
+sudo apt install -y chrony      # Debian/Ubuntu
+sudo yum install -y chrony      # RHEL/CentOS
+
+# Enable and start
+sudo systemctl enable --now chronyd
+```
+
+### Verifying the Fix
+
+After NTP is enabled, verify sync is working:
+
+```bash
+chronyc tracking | grep -E "Stratum|System time"
+# Should show "System time: 0.000000xxx seconds slow/fast of NTP time"
+```
+
+Then redeploy both containers and test the integration.
+
+---
+
 ## Appendix: Quick Reference Card
 
 ```
