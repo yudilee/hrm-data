@@ -12,15 +12,21 @@ return new class extends Migration
     {
         // FULLTEXT indexes for search queries
         Schema::table('master_customers', function (Blueprint $table) {
-            $table->fullText(['name', 'email', 'telp_1', 'company_name'], 'master_customers_ft_search');
+            if (! $this->indexExists('master_customers', 'master_customers_ft_search')) {
+                $table->fullText(['name', 'email', 'telp_1', 'company_name'], 'master_customers_ft_search');
+            }
         });
 
         Schema::table('master_vehicles', function (Blueprint $table) {
-            $table->fullText(['registration_no', 'chassis_no', 'description'], 'master_vehicles_ft_search');
+            if (! $this->indexExists('master_vehicles', 'master_vehicles_ft_search')) {
+                $table->fullText(['registration_no', 'chassis_no', 'description'], 'master_vehicles_ft_search');
+            }
         });
 
         Schema::table('service_histories', function (Blueprint $table) {
-            $table->fullText(['CINVN', 'CHASN', 'CNPOL'], 'service_histories_ft_search');
+            if (! $this->indexExists('service_histories', 'service_histories_ft_search')) {
+                $table->fullText(['CINVN', 'CHASN', 'CNPOL'], 'service_histories_ft_search');
+            }
         });
 
         // Composite indexes for common query patterns
