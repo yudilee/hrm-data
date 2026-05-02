@@ -15,15 +15,26 @@ class LabourCodeController extends Controller
      * Search and list labour codes.
      *
      * Query params:
-     *  - search:    string — code or description
-     *  - chassis:   string — filter by vehicle chassis (first 6 chars used as prefix)
-     *  - prefix:    string — filter by exact model prefix
-     *  - franchise: string — filter by franchise
-     *  - per_page:  int — max 200, default 50
+     *  - search:     string — code or description
+     *  - chassis:    string — filter by vehicle chassis (first 6 chars used as prefix)
+     *  - prefix:     string — filter by exact model prefix
+     *  - franchise:  string — filter by franchise
+     *  - group_code: array|int — filter by group codes (e.g. [26, 27])
+     *  - per_page:   int — max 200, default 50
      */
     public function index(Request $request)
     {
         $query = LabourCode::query();
+
+        if ($request->filled('group_code')) {
+            $codes = is_array($request->group_code) ? $request->group_code : [$request->group_code];
+            $query->where(function ($q) use ($codes) {
+                foreach ($codes as $code) {
+                    $q->orWhere('group_name', 'like', trim((string) $code) . ' - %')
+                      ->orWhere('group_name', 'like', trim((string) $code) . ' %');
+                }
+            });
+        }
 
         if ($request->filled('chassis')) {
             $chassis = strtoupper($request->chassis);

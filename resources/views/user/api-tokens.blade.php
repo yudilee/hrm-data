@@ -164,6 +164,7 @@
                             'GET /api/v2/labour-codes' => 'read:labour-codes (includes hours, prefix)',
                             'GET /api/v2/labour-codes?chassis=...' => 'filter by chassis',
                             'GET /api/v2/labour-codes?prefix=...' => 'filter by prefix',
+                            'GET /api/v2/labour-codes?group_code[]=...' => 'filter by group codes',
                             'GET /api/v2/search' => 'search',
                         ];
                         @endphp
