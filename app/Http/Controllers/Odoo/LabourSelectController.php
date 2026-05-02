@@ -61,46 +61,46 @@ class LabourSelectController extends Controller
      */
     public function submit(Request $request)
     {
+        $validated = $request->validate([
+            'job_order_id' => 'required',
+            'job_number' => 'nullable|string',
+            'callback_url' => 'required|url',
+            'selected_codes' => 'required|array|min:1',
+            'selected_codes.*' => 'integer|exists:labour_codes,id',
+        ]);
+
+        // Validate callback URL domain against allowlist
+        $callbackHost = parse_url($validated['callback_url'], PHP_URL_HOST);
+        $allowedHosts = config('services.odoo.allowed_callback_hosts', []);
+
+        if (! empty($allowedHosts) && ! in_array($callbackHost, $allowedHosts, true)) {
+            $debugInfo = "Blocked Host: '$callbackHost'. Allowed: [" . implode(', ', $allowedHosts) . "]";
+            abort(403, "Callback URL domain is not in the allowlist. ($debugInfo)");
+        }
+
+        // Fetch the selected labour codes
+        $codes = LabourCode::whereIn('id', $validated['selected_codes'])->get();
+
+        $payload = [
+            'job_order_id' => $validated['job_order_id'],
+            'source' => 'rts_labour_app',
+            'timestamp' => now()->toIso8601String(),
+            'labours' => $codes->map(fn ($c) => [
+                'rts_id' => $c->id,
+                'code' => $c->code,
+                'labour_key' => $c->labour_key,
+                'description' => $c->description,
+                'group_name' => $c->group_name,
+                'time_hours' => (float) $c->time_hours,
+            ])->values()->toArray(),
+        ];
+
+        // Sign the payload with webhook secret
+        $webhookSecret = config('services.odoo.webhook_secret');
+        $payloadJson = json_encode($payload);
+        $signature = hash_hmac('sha256', $payloadJson, $webhookSecret);
+
         try {
-            $validated = $request->validate([
-                'job_order_id' => 'required',
-                'job_number' => 'nullable|string',
-                'callback_url' => 'required|url',
-                'selected_codes' => 'required|array|min:1',
-                'selected_codes.*' => 'integer|exists:labour_codes,id',
-            ]);
-
-            // Validate callback URL domain against allowlist
-            $callbackHost = parse_url($validated['callback_url'], PHP_URL_HOST);
-            $allowedHosts = config('services.odoo.allowed_callback_hosts', []);
-
-            if (! empty($allowedHosts) && ! in_array($callbackHost, $allowedHosts, true)) {
-                $debugInfo = "Blocked Host: '$callbackHost'. Allowed: [" . implode(', ', $allowedHosts) . "]";
-                abort(403, "Callback URL domain is not in the allowlist. ($debugInfo)");
-            }
-
-            // Fetch the selected labour codes
-            $codes = LabourCode::whereIn('id', $validated['selected_codes'])->get();
-
-            $payload = [
-                'job_order_id' => $validated['job_order_id'],
-                'source' => 'rts_labour_app',
-                'timestamp' => now()->toIso8601String(),
-                'labours' => $codes->map(fn ($c) => [
-                    'rts_id' => $c->id,
-                    'code' => $c->code,
-                    'labour_key' => $c->labour_key,
-                    'description' => $c->description,
-                    'group_name' => $c->group_name,
-                    'time_hours' => (float) $c->time_hours,
-                ])->values()->toArray(),
-            ];
-
-            // Sign the payload with webhook secret
-            $webhookSecret = config('services.odoo.webhook_secret');
-            $payloadJson = json_encode($payload);
-            $signature = hash_hmac('sha256', $payloadJson, $webhookSecret);
-
             $response = Http::withHeaders([
                 'X-RTS-Signature' => $signature,
                 'X-RTS-Timestamp' => (string) time(),
@@ -122,6 +122,18 @@ class LabourSelectController extends Controller
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
+    <script>
+        function closeAndRefresh() {
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.location.reload();
+                }
+            } catch (e) {
+                console.log("Could not refresh opener due to cross-origin restrictions");
+            }
+            window.close();
+        }
+    </script>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 flex items-center justify-center min-h-screen p-4">
     <div class="max-w-md w-full bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-8 text-center border border-slate-100 dark:border-slate-700">
@@ -137,13 +149,17 @@ class LabourSelectController extends Controller
         </p>
 
         <div class="space-y-3">
-            <button onclick="window.close()" class="w-full py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold rounded-xl hover:opacity-90 transition-all">
+            <button onclick="closeAndRefresh()" class="w-full py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold rounded-xl hover:opacity-90 transition-all">
                 Close Window
             </button>
             <a href="/" class="block w-full py-3 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold rounded-xl border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-all text-sm text-center">
                 Return to Dashboard
             </a>
         </div>
+        
+        <p class="mt-8 text-[10px] uppercase tracking-widest text-slate-400 font-medium">
+            RTS Labour Integration System
+        </p>
     </div>
 </body>
 </html>
@@ -151,10 +167,25 @@ HTML;
                 return response($html)->header('Content-Type', 'text/html');
             }
 
-            return "Odoo Error: " . $response->status() . " - " . $response->body();
+            Log::error('Odoo labour callback failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'job_order_id' => $validated['job_order_id'],
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors(['callback' => 'Odoo returned an error (HTTP ' . $response->status() . '). Please try again or contact IT support.']);
 
         } catch (\Exception $e) {
-            return "RTS System Error: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine();
+            Log::error('Odoo labour callback exception', [
+                'error' => $e->getMessage(),
+                'job_order_id' => $validated['job_order_id'],
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors(['callback' => 'Failed to connect to Odoo: ' . $e->getMessage()]);
         }
     }
 }
