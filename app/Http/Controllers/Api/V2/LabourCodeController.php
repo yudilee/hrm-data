@@ -16,12 +16,24 @@ class LabourCodeController extends Controller
      *
      * Query params:
      *  - search:    string — code or description
+     *  - chassis:   string — filter by vehicle chassis (first 6 chars used as prefix)
+     *  - prefix:    string — filter by exact model prefix
      *  - franchise: string — filter by franchise
      *  - per_page:  int — max 200, default 50
      */
     public function index(Request $request)
     {
         $query = LabourCode::query();
+
+        if ($request->filled('chassis')) {
+            $chassis = strtoupper($request->chassis);
+            $prefix = substr($chassis, 0, 6);
+            $query->where('model_prefix', $prefix);
+        }
+
+        if ($request->filled('prefix')) {
+            $query->where('model_prefix', strtoupper($request->prefix));
+        }
 
         if ($request->filled('search')) {
             $s = $request->search;

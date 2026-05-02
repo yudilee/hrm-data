@@ -162,6 +162,8 @@
                             'GET /api/v2/service-histories' => 'read:service-histories',
                             'GET /api/v2/suppliers' => 'read:suppliers',
                             'GET /api/v2/labour-codes' => 'read:labour-codes',
+                            'GET /api/v2/labour-codes?chassis=...' => 'filter by chassis',
+                            'GET /api/v2/labour-codes?prefix=...' => 'filter by prefix',
                             'GET /api/v2/search' => 'search',
                         ];
                         @endphp
