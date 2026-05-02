@@ -11,7 +11,9 @@
     </div>
     <h1 class="text-6xl font-black text-slate-300 dark:text-slate-600">403</h1>
     <h2 class="mt-4 text-2xl font-bold text-slate-900 dark:text-white">Access Denied</h2>
-    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-md">You don't have permission to access this page. Please contact your administrator if you believe this is a mistake.</p>
+    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-lg">
+        {{ $exception->getMessage() ?: "You don't have permission to access this page. Please contact your administrator if you believe this is a mistake." }}
+    </p>
     <div class="mt-8">
         <a href="{{ route('dashboard') }}" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">Go to Dashboard</a>
     </div>
