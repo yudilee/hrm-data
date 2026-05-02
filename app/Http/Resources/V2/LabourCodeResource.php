@@ -13,10 +13,12 @@ class LabourCodeResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'model_prefix' => $this->model_prefix,
             'code' => $this->code,
+            'labour_key' => $this->labour_key,
             'description' => $this->description,
-            'category' => $this->category ?? null,
-            'franchise' => $this->franchise ?? null,
+            'group_name' => $this->group_name,
+            'time_hours' => (float) $this->time_hours,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
