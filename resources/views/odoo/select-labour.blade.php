@@ -121,24 +121,29 @@
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden"
                  x-show="filterGroup('{{ addslashes($groupName) }}')" x-cloak>
                 {{-- Group Header --}}
-                <div class="px-6 py-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div class="px-6 py-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer group/header"
+                     @click="toggleCollapse('{{ addslashes($groupName) }}')">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                            <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center group-hover/header:bg-indigo-200 transition-colors">
+                            <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400 transition-transform duration-200" 
+                                 :class="isCollapsed('{{ addslashes($groupName) }}') ? '-rotate-90' : ''"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </div>
                         <div>
                             <h3 class="font-bold text-slate-900 dark:text-white">{{ $groupName ?: 'Ungrouped' }}</h3>
                             <p class="text-xs text-slate-500 dark:text-slate-400">{{ $groupCodes->count() }} labour code{{ $groupCodes->count() > 1 ? 's' : '' }}</p>
                         </div>
                     </div>
-                    <button type="button" @click="selectGroup('{{ addslashes($groupName) }}')"
-                        class="px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors">
-                        Toggle Group
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click.stop="selectGroup('{{ addslashes($groupName) }}')"
+                            class="px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors">
+                            Select Group
+                        </button>
+                    </div>
                 </div>
 
                 {{-- Code List --}}
-                <div class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                <div class="divide-y divide-slate-100 dark:divide-slate-700/50" x-show="!isCollapsed('{{ addslashes($groupName) }}')" x-collapse>
                     @foreach($groupCodes as $code)
                     <label x-show="filterCode({{ json_encode($code->code . ' ' . $code->description) }})"
                            class="flex items-center gap-4 px-6 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group">
@@ -201,6 +206,19 @@ function labourSelector() {
         search: '',
         selected: [],
         submitting: false,
+        collapsedGroups: [],
+
+        isCollapsed(group) {
+            return this.collapsedGroups.includes(group);
+        },
+
+        toggleCollapse(group) {
+            if (this.isCollapsed(group)) {
+                this.collapsedGroups = this.collapsedGroups.filter(g => g !== group);
+            } else {
+                this.collapsedGroups.push(group);
+            }
+        },
 
         get selectedCount() {
             return this.selected.length;
