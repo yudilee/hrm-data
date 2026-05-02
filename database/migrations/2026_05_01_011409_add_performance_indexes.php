@@ -115,12 +115,6 @@ return new class extends Migration
 
     protected function indexExists(string $table, string $name): bool
     {
-        $conn = Schema::getConnection();
-        $manager = $conn->getDoctrineSchemaManager();
-        if (method_exists($manager, 'listTableIndexes')) {
-            return array_key_exists($name, $manager->listTableIndexes($table));
-        }
-
-        return false;
+        return collect(Schema::getIndexes($table))->contains('name', $name);
     }
 };
