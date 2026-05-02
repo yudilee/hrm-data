@@ -61,51 +61,46 @@ class LabourSelectController extends Controller
      */
     public function submit(Request $request)
     {
-        $validated = $request->validate([
-            'job_order_id' => 'required',
-            'job_number' => 'nullable|string',
-            'callback_url' => 'required|url',
-            'selected_codes' => 'required|array|min:1',
-            'selected_codes.*' => 'integer|exists:labour_codes,id',
-        ]);
-
-        // Validate callback URL domain against allowlist
-        $callbackHost = parse_url($validated['callback_url'], PHP_URL_HOST);
-        $allowedHosts = config('services.odoo.allowed_callback_hosts', []);
-
-        if (! empty($allowedHosts) && ! in_array($callbackHost, $allowedHosts, true)) {
-            $debugInfo = "Blocked Host: '$callbackHost'. Allowed: [" . implode(', ', $allowedHosts) . "]";
-            Log::channel('security')->warning('Odoo callback: blocked non-allowlisted host', [
-                'host' => $callbackHost,
-                'allowed' => $allowedHosts,
-                'ip' => $request->ip(),
-            ]);
-            abort(403, "Callback URL domain is not in the allowlist. ($debugInfo)");
-        }
-
-        // Fetch the selected labour codes
-        $codes = LabourCode::whereIn('id', $validated['selected_codes'])->get();
-
-        $payload = [
-            'job_order_id' => $validated['job_order_id'],
-            'source' => 'rts_labour_app',
-            'timestamp' => now()->toIso8601String(),
-            'labours' => $codes->map(fn ($c) => [
-                'rts_id' => $c->id,
-                'code' => $c->code,
-                'labour_key' => $c->labour_key,
-                'description' => $c->description,
-                'group_name' => $c->group_name,
-                'time_hours' => (float) $c->time_hours,
-            ])->values()->toArray(),
-        ];
-
-        // Sign the payload with webhook secret
-        $webhookSecret = config('services.odoo.webhook_secret');
-        $payloadJson = json_encode($payload);
-        $signature = hash_hmac('sha256', $payloadJson, $webhookSecret);
-
         try {
+            $validated = $request->validate([
+                'job_order_id' => 'required',
+                'job_number' => 'nullable|string',
+                'callback_url' => 'required|url',
+                'selected_codes' => 'required|array|min:1',
+                'selected_codes.*' => 'integer|exists:labour_codes,id',
+            ]);
+
+            // Validate callback URL domain against allowlist
+            $callbackHost = parse_url($validated['callback_url'], PHP_URL_HOST);
+            $allowedHosts = config('services.odoo.allowed_callback_hosts', []);
+
+            if (! empty($allowedHosts) && ! in_array($callbackHost, $allowedHosts, true)) {
+                $debugInfo = "Blocked Host: '$callbackHost'. Allowed: [" . implode(', ', $allowedHosts) . "]";
+                abort(403, "Callback URL domain is not in the allowlist. ($debugInfo)");
+            }
+
+            // Fetch the selected labour codes
+            $codes = LabourCode::whereIn('id', $validated['selected_codes'])->get();
+
+            $payload = [
+                'job_order_id' => $validated['job_order_id'],
+                'source' => 'rts_labour_app',
+                'timestamp' => now()->toIso8601String(),
+                'labours' => $codes->map(fn ($c) => [
+                    'rts_id' => $c->id,
+                    'code' => $c->code,
+                    'labour_key' => $c->labour_key,
+                    'description' => $c->description,
+                    'group_name' => $c->group_name,
+                    'time_hours' => (float) $c->time_hours,
+                ])->values()->toArray(),
+            ];
+
+            // Sign the payload with webhook secret
+            $webhookSecret = config('services.odoo.webhook_secret');
+            $payloadJson = json_encode($payload);
+            $signature = hash_hmac('sha256', $payloadJson, $webhookSecret);
+
             $response = Http::withHeaders([
                 'X-RTS-Signature' => $signature,
                 'X-RTS-Timestamp' => (string) time(),
@@ -115,12 +110,6 @@ class LabourSelectController extends Controller
                 ->post($validated['callback_url']);
 
             if ($response->successful()) {
-                Log::info('Odoo labour callback sent successfully', [
-                    'job_order_id' => $validated['job_order_id'],
-                    'codes_count' => $codes->count(),
-                    'callback_url' => $validated['callback_url'],
-                ]);
-
                 $html = <<<HTML
 <!DOCTYPE html>
 <html lang="en">
@@ -155,37 +144,17 @@ class LabourSelectController extends Controller
                 Return to Dashboard
             </a>
         </div>
-        
-        <p class="mt-8 text-[10px] uppercase tracking-widest text-slate-400 font-medium">
-            RTS Labour Integration System
-        </p>
     </div>
 </body>
 </html>
 HTML;
-
                 return response($html)->header('Content-Type', 'text/html');
             }
 
-            Log::error('Odoo labour callback failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-                'job_order_id' => $validated['job_order_id'],
-            ]);
-
-            return back()
-                ->withInput()
-                ->withErrors(['callback' => 'Odoo returned an error (HTTP ' . $response->status() . '). Please try again or contact IT support.']);
+            return "Odoo Error: " . $response->status() . " - " . $response->body();
 
         } catch (\Exception $e) {
-            Log::error('Odoo labour callback exception', [
-                'error' => $e->getMessage(),
-                'job_order_id' => $validated['job_order_id'],
-            ]);
-
-            return back()
-                ->withInput()
-                ->withErrors(['callback' => 'Failed to connect to Odoo: ' . $e->getMessage()]);
+            return "RTS System Error: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine();
         }
     }
 }
