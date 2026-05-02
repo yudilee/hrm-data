@@ -79,7 +79,12 @@
         @csrf
         <input type="hidden" name="job_order_id" value="{{ $jobOrderId }}">
         <input type="hidden" name="job_number" value="{{ $jobNumber }}">
+        <input type="hidden" name="chassis" value="{{ $chassis }}">
+        <input type="hidden" name="customer_name" value="{{ $customerName }}">
         <input type="hidden" name="callback_url" value="{{ $callbackUrl }}">
+        <input type="hidden" name="nonce" value="{{ request('nonce') }}">
+        <input type="hidden" name="exp" value="{{ request('exp') }}">
+        <input type="hidden" name="sig" value="{{ request('sig') }}">
 
         {{-- Toolbar --}}
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

@@ -43,7 +43,11 @@ class VerifyOdooSignature
 
         // 2. Verify HMAC signature
         $signature = $request->input('sig', '');
-        $params = $request->except('sig');
+        
+        // Only include the parameters that Odoo originally signed
+        $signedKeys = ['job_order_id', 'job_number', 'chassis', 'customer_name', 'callback_url', 'nonce', 'exp'];
+        $params = $request->only($signedKeys);
+        
         ksort($params);
         $message = collect($params)->map(fn ($v, $k) => "{$k}={$v}")->join('&');
         $expected = hash_hmac('sha256', $message, $secret);
