@@ -121,11 +121,13 @@ class LabourSelectController extends Controller
                     'callback_url' => $validated['callback_url'],
                 ]);
 
-                return view('odoo.select-labour-success', [
-                    'count' => $codes->count(),
-                    'jobNumber' => $validated['job_number'] ?? $validated['job_order_id'],
-                    'codes' => $codes,
-                ]);
+                if (view()->exists('odoo.success')) {
+                    return view('odoo.success', [
+                        'jobOrderId' => $validated['job_order_id'],
+                    ]);
+                }
+
+                return response("Selection for {$validated['job_order_id']} exported successfully! You can close this window.");
             }
 
             Log::error('Odoo labour callback failed', [
