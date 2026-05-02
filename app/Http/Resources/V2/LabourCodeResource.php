@@ -9,6 +9,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class LabourCodeResource extends JsonResource
 {
+    /**
+     * @return array{id: int, model_prefix: string, code: string, labour_key: string, description: string, group_name: string, time_hours: float, created_at: string, updated_at: string}
+     */
     public function toArray(Request $request): array
     {
         return [

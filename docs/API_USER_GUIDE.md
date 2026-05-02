@@ -34,7 +34,7 @@ All current requests should use **API v2**.
 | `GET /vehicles` | `read:vehicles` | List and search master vehicle records |
 | `GET /service-histories` | `read:service-histories` | View detailed vehicle service history |
 | `GET /suppliers` | `read:suppliers` | List master supplier records |
-| `GET /labour-codes` | `read:labour-codes` | List labour codes. Filter by `chassis` or `prefix`. |
+| `GET /labour-codes` | `read:labour-codes` | List codes. Response includes `time_hours`, `model_prefix`, and `group_name`. |
 | `GET /search?q=...` | `search` | Global cross-entity search |
 
 ## 5. Usage Examples
