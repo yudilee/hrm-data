@@ -25,6 +25,7 @@
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 min-h-screen flex" 
     x-data="{ 
         sidebarOpen: window.innerWidth >= 1280,
+        mobileSidebarOpen: false,
         darkMode: document.documentElement.classList.contains('dark')
     }"
     x-init="
@@ -39,15 +40,39 @@
                 localStorage.setItem('theme', 'light');
             }
         });
-        // Sync initial state to document element
         document.documentElement.classList.toggle('dark', darkMode);
         document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
-    ">
+        // Close mobile sidebar on resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 1280) mobileSidebarOpen = false;
+        });
+    "
+    @keydown.ctrl.k.prevent="$refs.globalSearch?.focus()"
+>
 
     {{-- Sidebar --}}
     {{-- Sidebar --}}
     @if(!request('compact'))
-    <aside :class="sidebarOpen ? 'w-64' : 'w-16'" class="bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 flex flex-col transition-all duration-300 fixed h-full z-[60]">
+    {{-- Mobile overlay backdrop --}}
+    <div x-show="mobileSidebarOpen" x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[55] xl:hidden"
+        @click="mobileSidebarOpen = false"
+    ></div>
+
+    <aside
+        :class="{
+            'w-64': sidebarOpen,
+            'w-16': !sidebarOpen,
+            'translate-x-0': mobileSidebarOpen,
+            '-translate-x-full xl:translate-x-0': !mobileSidebarOpen
+        }"
+        class="bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 flex flex-col transition-all duration-300 fixed h-full z-[60]"
         {{-- Logo --}}
         <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 h-16">
             <template x-if="!darkMode">
@@ -56,7 +81,7 @@
             <template x-if="darkMode">
                 <img x-show="sidebarOpen" x-cloak src="{{ asset('images/logo-dark.png') }}" alt="App Logo" class="h-8 object-contain">
             </template>
-            <button @click="sidebarOpen = !sidebarOpen" class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <button @click="sidebarOpen = !sidebarOpen" class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Toggle sidebar" title="Toggle sidebar">
                 <svg x-show="sidebarOpen" class="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
                 <svg x-show="!sidebarOpen" class="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
             </button>
@@ -66,7 +91,7 @@
         <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
             {{-- Dashboard --}}
             @if(\App\Models\Setting::get('show_dashboard', '1') === '1')
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->routeIs('dashboard') ? 'bg-emerald-50 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400' }}">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->routeIs('dashboard') ? 'bg-emerald-50 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400' }}" title="Dashboard" aria-label="Dashboard">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 <span x-show="sidebarOpen" x-cloak>Dashboard</span>
             </a>
@@ -173,11 +198,15 @@
             </a>
             @endif
 
-            {{-- API Docs — visible to all authenticated users --}}
+            {{-- API Docs and My Tokens — visible to all authenticated users --}}
             @if(auth()->check())
             <div class="pt-4 pb-2">
                 <p x-show="sidebarOpen" x-cloak class="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Developer</p>
             </div>
+            <a href="{{ route('user.api-tokens.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->routeIs('user.api-tokens*') ? 'bg-emerald-50 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400' }}">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                <span x-show="sidebarOpen" x-cloak>My API Tokens</span>
+            </a>
             <a href="/docs/api" target="_blank" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
                 <span x-show="sidebarOpen" x-cloak>API Docs</span>
@@ -244,12 +273,19 @@
     @endif
 
     {{-- Main Content --}}
-    <main @if(!request('compact')) :class="sidebarOpen ? 'ml-64' : 'ml-16'" @endif class="flex-1 transition-all duration-300 min-h-screen">
+    <main @if(!request('compact')) :class="sidebarOpen ? 'xl:ml-64' : 'xl:ml-16'" @endif class="flex-1 transition-all duration-300 min-h-screen ml-0">
         {{-- Header --}}
         @if(!request('compact'))
         <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
+            <div class="flex items-center gap-3">
+                {{-- Hamburger for mobile --}}
+                <button @click="mobileSidebarOpen = !mobileSidebarOpen" class="xl:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label="Open menu">
+                    <svg class="w-6 h-6 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
                 <h1 class="text-2xl font-bold">@yield('title', 'Dashboard')</h1>
+                @hasSection('breadcrumb')
+                    @yield('breadcrumb')
+                @endif
                 @hasSection('subtitle')
                     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">@yield('subtitle')</p>
                 @endif
@@ -286,9 +322,10 @@
                     <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <input type="text" x-model.debounce.300ms="query" @input="search" @focus="query.length >= 2 ? open = true : null"
+                    <input type="text" x-ref="globalSearch" x-model.debounce.300ms="query" @input="search" @focus="query.length >= 2 ? open = true : null"
                         class="block w-full pl-10 pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all"
-                        placeholder="Global search (Ctrl+K)...">
+                        placeholder="Global search (customers, vehicles, invoices)..."
+                        aria-label="Global search">
                     <div x-show="loading" class="absolute inset-y-0 right-0 flex items-center pr-3">
                         <svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     </div>
@@ -368,7 +405,7 @@
             {{-- Notification Bell (admin only) --}}
             @if(auth()->check() && auth()->user()->role === 'admin')
             <div x-data="notifBell()" class="relative shrink-0" @click.away="open = false">
-                <button @click="toggle" class="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                <button @click="toggle" class="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label="Notifications" title="Notifications">
                     <svg class="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                     </svg>
@@ -399,22 +436,21 @@
         </header>
         @endif
 
-        {{-- Flash Messages --}}
+        {{-- Flash Messages (also dispatched as toasts) --}}
         @if(session('success'))
-            <div class="mx-6 mt-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 p-4 rounded-lg">
-                {{ session('success') }}
-            </div>
+            <div id="flash-success" data-message="{{ session('success') }}" class="hidden"></div>
         @endif
         @if(session('error'))
-            <div class="mx-6 mt-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 p-4 rounded-lg">
-                {{ session('error') }}
-            </div>
+            <div id="flash-error" data-message="{{ session('error') }}" class="hidden"></div>
         @endif
 
     {{-- Page Content --}}
     <div class="p-6">
         @yield('content')
     </div>
+
+    {{-- Toast Notification System --}}
+    <x-ui.toasts />
 </main>
 
 @stack('scripts')
@@ -423,7 +459,22 @@
         if (window.Alpine) {
             window.Alpine.start();
         }
+
+        // Convert any flash messages to toast notifications
+        const flashSuccess = document.getElementById('flash-success');
+        const flashError = document.getElementById('flash-error');
+        if (flashSuccess) {
+            window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: flashSuccess.dataset.message } }));
+        }
+        if (flashError) {
+            window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: flashError.dataset.message } }));
+        }
     });
+
+    // Global toast helper for use anywhere
+    window.showToast = function(type, message) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { type: type, message: message } }));
+    };
 
     function recentlyViewed() {
         return {

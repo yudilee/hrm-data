@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\MasterCustomer;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class BackfillNamesCommand extends Command
 {
     protected $signature = 'rts:backfill-names {--dry-run : Only show what would be updated}';
+
     protected $description = 'Fill in missing customer names from their vehicle service history.';
 
     public function handle()
@@ -39,14 +41,14 @@ class BackfillNamesCommand extends Command
                 } else {
                     $customer->name = $latestHistory->ENAME;
                     $customer->normalized_name = MasterCustomer::normalizeName($customer->name);
-                    
+
                     // Also backfill address if missing
-                    if (!$customer->full_address && $latestHistory->EADDR) {
+                    if (! $customer->full_address && $latestHistory->EADDR) {
                         $customer->address_1 = $latestHistory->EADDR;
                         $customer->address_5 = $latestHistory->ECITY;
                         $customer->full_address = collect([$latestHistory->EADDR, $latestHistory->ECITY])->filter()->implode(', ');
                     }
-                    
+
                     $customer->save();
                 }
                 $updated++;

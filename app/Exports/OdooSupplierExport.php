@@ -1,22 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Exports;
 
 use App\Models\MasterSupplier;
 use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class OdooSupplierExport implements FromQuery, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithTitle, WithChunkReading, WithEvents
+class OdooSupplierExport implements FromQuery, WithChunkReading, WithColumnWidths, WithEvents, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     protected array $filters;
 
@@ -29,14 +31,14 @@ class OdooSupplierExport implements FromQuery, WithHeadings, WithMapping, WithSt
     {
         $query = MasterSupplier::query();
 
-        if (!empty($this->filters['search'])) {
+        if (! empty($this->filters['search'])) {
             $s = $this->filters['search'];
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
-                  ->orWhere('code', 'like', "%{$s}%")
-                  ->orWhere('email', 'like', "%{$s}%")
-                  ->orWhere('city', 'like', "%{$s}%")
-                  ->orWhere('contact_person', 'like', "%{$s}%");
+                    ->orWhere('code', 'like', "%{$s}%")
+                    ->orWhere('email', 'like', "%{$s}%")
+                    ->orWhere('city', 'like', "%{$s}%")
+                    ->orWhere('contact_person', 'like', "%{$s}%");
             });
         }
 
@@ -76,7 +78,7 @@ class OdooSupplierExport implements FromQuery, WithHeadings, WithMapping, WithSt
 
     public function map($supplier): array
     {
-        $address = trim(($supplier->address_1 ?? '') . ' ' . ($supplier->address_2 ?? ''));
+        $address = trim(($supplier->address_1 ?? '').' '.($supplier->address_2 ?? ''));
 
         return [
             'FALSE',
@@ -162,11 +164,11 @@ class OdooSupplierExport implements FromQuery, WithHeadings, WithMapping, WithSt
 
     private function deriveBranch(?string $source): string
     {
-        return match($source) {
-            'HRMSBY PC', 'HRMSBY CV'  => 'Hartono Motor Surabaya',
-            'HRMJKT CV'               => 'Hartono Motor Jakarta',
-            'HRMDPS PC', 'HRMDPS CV'  => 'Hartono Motor Denpasar',
-            'HRMSMG PC', 'HRMSMG CV'  => 'Hartono Motor Semarang',
+        return match ($source) {
+            'HRMSBY PC', 'HRMSBY CV' => 'Hartono Motor Surabaya',
+            'HRMJKT CV' => 'Hartono Motor Jakarta',
+            'HRMDPS PC', 'HRMDPS CV' => 'Hartono Motor Denpasar',
+            'HRMSMG PC', 'HRMSMG CV' => 'Hartono Motor Semarang',
             default => '',
         };
     }

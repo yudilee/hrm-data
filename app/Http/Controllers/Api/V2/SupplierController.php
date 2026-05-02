@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
@@ -24,7 +26,7 @@ class SupplierController extends Controller
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(fn($q) => $q
+            $query->where(fn ($q) => $q
                 ->where('name', 'like', "%$s%")
                 ->orWhere('supplier_code', 'like', "%$s%")
                 ->orWhere('city', 'like', "%$s%")

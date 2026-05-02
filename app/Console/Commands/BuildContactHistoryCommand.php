@@ -1,16 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use App\Models\VehicleContactHistory;
-use App\Models\ServiceHistory;
-use App\Models\MasterVehicle;
 
 class BuildContactHistoryCommand extends Command
 {
     protected $signature = 'rts:build-contact-history';
+
     protected $description = 'Build vehicle contact history from service histories';
 
     public function handle()
@@ -68,7 +68,7 @@ class BuildContactHistoryCommand extends Command
             ];
         }
 
-        $this->info('Inserting ' . count($historyData) . ' service requester records...');
+        $this->info('Inserting '.count($historyData).' service requester records...');
         $bar = $this->output->createProgressBar(count($historyData));
         $bar->start();
 
@@ -79,6 +79,7 @@ class BuildContactHistoryCommand extends Command
         $bar->finish();
 
         $this->info("\nVehicle Contact History Build Completed.");
+
         return Command::SUCCESS;
     }
 }

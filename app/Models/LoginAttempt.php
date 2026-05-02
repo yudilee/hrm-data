@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +16,7 @@ class LoginAttempt extends Model
     ];
 
     protected $casts = [
-        'success'    => 'boolean',
+        'success' => 'boolean',
         'created_at' => 'datetime',
     ];
 
@@ -23,18 +25,18 @@ class LoginAttempt extends Model
      */
     public static function record(
         string $email,
-        bool   $success,
+        bool $success,
         string $ip,
         string $ua,
         ?string $reason = null
     ): void {
         static::create([
-            'email'          => strtolower(trim($email)),
-            'ip_address'     => $ip,
-            'user_agent'     => substr($ua, 0, 500),
-            'success'        => $success,
+            'email' => strtolower(trim($email)),
+            'ip_address' => $ip,
+            'user_agent' => substr($ua, 0, 500),
+            'success' => $success,
             'failure_reason' => $reason,
-            'created_at'     => now(),
+            'created_at' => now(),
         ]);
     }
 

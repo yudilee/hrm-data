@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -9,8 +11,8 @@ class ServiceHistoryLabour extends Model
     protected $table = 'service_history_labours';
 
     protected $fillable = [
-        'service_history_id', 'CJOBN', 'CINVN', 'CDJOB', 
-        'EMJOB', 'QHOUR', 'TAKEN', 'NET', 'DISC'
+        'service_history_id', 'CJOBN', 'CINVN', 'CDJOB',
+        'EMJOB', 'QHOUR', 'TAKEN', 'NET', 'DISC',
     ];
 
     public function history()

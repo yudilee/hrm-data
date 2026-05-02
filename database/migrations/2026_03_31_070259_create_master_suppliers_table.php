@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -27,14 +29,14 @@ return new class extends Migration
             $table->string('bank_account_no')->nullable();
             $table->string('bank_account_name')->nullable();
             $table->string('category')->nullable();
-            
+
             $table->string('source', 100)->nullable();
-            
+
             // Odoo Integration Columns
             $table->string('odoo_id')->nullable()->index();
             $table->enum('sync_status', ['pending', 'synced', 'failed'])->default('pending')->index();
             $table->timestamp('last_synced_at')->nullable();
-            
+
             $table->timestamps();
         });
     }

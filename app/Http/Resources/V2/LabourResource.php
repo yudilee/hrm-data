@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\V2;
 
 use Illuminate\Http\Request;
@@ -10,11 +12,11 @@ class LabourResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'          => $this->id,
-            'code'        => $this->CJASA,
+            'id' => $this->id,
+            'code' => $this->CJASA,
             'description' => $this->NJASA,
-            'quantity'    => $this->QJASA,
-            'amount'      => $this->NJUML,
+            'quantity' => $this->QJASA,
+            'amount' => $this->NJUML,
         ];
     }
 }

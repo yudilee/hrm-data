@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -36,17 +38,29 @@ class UserSession extends Model
             $deviceType = preg_match('/tablet|ipad/i', $userAgent) ? 'tablet' : 'mobile';
         }
 
-        if (preg_match('/Firefox/i', $userAgent)) $browser = 'Firefox';
-        elseif (preg_match('/Chrome/i', $userAgent)) $browser = 'Chrome';
-        elseif (preg_match('/Safari/i', $userAgent)) $browser = 'Safari';
-        elseif (preg_match('/Edge/i', $userAgent)) $browser = 'Edge';
-        elseif (preg_match('/Opera|OPR/i', $userAgent)) $browser = 'Opera';
+        if (preg_match('/Firefox/i', $userAgent)) {
+            $browser = 'Firefox';
+        } elseif (preg_match('/Chrome/i', $userAgent)) {
+            $browser = 'Chrome';
+        } elseif (preg_match('/Safari/i', $userAgent)) {
+            $browser = 'Safari';
+        } elseif (preg_match('/Edge/i', $userAgent)) {
+            $browser = 'Edge';
+        } elseif (preg_match('/Opera|OPR/i', $userAgent)) {
+            $browser = 'Opera';
+        }
 
-        if (preg_match('/Windows/i', $userAgent)) $platform = 'Windows';
-        elseif (preg_match('/Macintosh|Mac OS/i', $userAgent)) $platform = 'macOS';
-        elseif (preg_match('/Linux/i', $userAgent)) $platform = 'Linux';
-        elseif (preg_match('/Android/i', $userAgent)) $platform = 'Android';
-        elseif (preg_match('/iPhone|iPad|iPod/i', $userAgent)) $platform = 'iOS';
+        if (preg_match('/Windows/i', $userAgent)) {
+            $platform = 'Windows';
+        } elseif (preg_match('/Macintosh|Mac OS/i', $userAgent)) {
+            $platform = 'macOS';
+        } elseif (preg_match('/Linux/i', $userAgent)) {
+            $platform = 'Linux';
+        } elseif (preg_match('/Android/i', $userAgent)) {
+            $platform = 'Android';
+        } elseif (preg_match('/iPhone|iPad|iPod/i', $userAgent)) {
+            $platform = 'iOS';
+        }
 
         return ['device_type' => $deviceType, 'browser' => $browser, 'platform' => $platform];
     }
@@ -55,7 +69,7 @@ class UserSession extends Model
     {
         $info = $userAgent ? self::parseUserAgent($userAgent) : [];
         self::where('user_id', $userId)->update(['is_current' => false]);
-        
+
         return self::updateOrCreate(
             ['session_id' => $sessionId],
             [

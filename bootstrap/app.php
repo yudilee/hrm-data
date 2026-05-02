@@ -1,11 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\CheckTokenIpAllowlist;
+use App\Http\Middleware\LogApiAccess;
+use App\Http\Middleware\UpdateSessionActivity;
+use App\Http\Middleware\VerifyOdooSignature;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,35 +28,67 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'role'              => \App\Http\Middleware\CheckRole::class,
-            'abilities'         => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
-            'ability'           => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
-            'api.log'           => \App\Http\Middleware\LogApiAccess::class,
-            'api.ip-allowlist'  => \App\Http\Middleware\CheckTokenIpAllowlist::class,
+            'role' => CheckRole::class,
+            'abilities' => CheckAbilities::class,
+            'ability' => CheckForAnyAbility::class,
+            'api.log' => LogApiAccess::class,
+            'api.ip-allowlist' => CheckTokenIpAllowlist::class,
+            'odoo.signature' => VerifyOdooSignature::class,
         ]);
 
         $middleware->web(append: [
-            \App\Http\Middleware\UpdateSessionActivity::class,
+            UpdateSessionActivity::class,
         ]);
 
         $middleware->api(append: [
-            \App\Http\Middleware\LogApiAccess::class,
-            \App\Http\Middleware\CheckTokenIpAllowlist::class,
+            LogApiAccess::class,
+            CheckTokenIpAllowlist::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if ($request->is('api/*') || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'not_found',
+                    'message' => 'The requested resource was not found.',
+                ], 404);
+            }
+        });
+
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if ($request->is('api/*') || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'http_error',
+                    'message' => $e->getMessage() ?: 'An error occurred.',
+                ], $e->getStatusCode());
+            }
+        });
+
+        $exceptions->render(function (Throwable $e, Request $request) {
+            if ($request->is('api/*') || $request->wantsJson()) {
+                Log::error('API exception', [
+                    'error' => $e->getMessage(),
+                    'path' => $request->path(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'error' => 'server_error',
+                    'message' => app()->isProduction() ? 'An unexpected error occurred.' : $e->getMessage(),
+                ], 500);
+            }
+        });
     })->create();
 
 // ─── Rate Limiter — per-token override ────────────────────────────────────────
-RateLimiter::for('api', function (\Illuminate\Http\Request $request) {
-    $user  = $request->user();
+RateLimiter::for('api', function (Request $request) {
+    $user = $request->user();
     $token = $user?->currentAccessToken();
     $limit = $token?->rate_limit
         ?? ($user?->role === 'admin' ? 300 : 60);
 
-    return \Illuminate\Cache\RateLimiting\Limit::perMinute($limit)
+    return Limit::perMinute($limit)
         ->by($user?->id ?: $request->ip());
 });
-
-

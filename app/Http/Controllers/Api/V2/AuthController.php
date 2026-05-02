@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
@@ -15,21 +17,21 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        $user  = $request->user();
+        $user = $request->user();
         $token = $user->currentAccessToken();
 
         return response()->json([
             'success' => true,
             'data' => [
-                'id'         => $user->id,
-                'name'       => $user->name,
-                'email'      => $user->email,
-                'role'       => $user->role,
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
                 'token' => [
-                    'name'       => $token->name,
-                    'abilities'  => $token->abilities,
+                    'name' => $token->name,
+                    'abilities' => $token->abilities,
                     'created_at' => $token->created_at,
-                    'last_used'  => $token->last_used_at,
+                    'last_used' => $token->last_used_at,
                 ],
             ],
             'meta' => ['version' => '2.0'],
@@ -49,10 +51,10 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'status'    => 'ok',
-            'database'  => $dbStatus,
-            'app'       => config('app.name'),
-            'version'   => '2.0',
+            'status' => 'ok',
+            'database' => $dbStatus,
+            'app' => config('app.name'),
+            'version' => '2.0',
             'timestamp' => now()->toIso8601String(),
         ]);
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
@@ -25,19 +27,19 @@ class SearchController extends Controller
         if (strlen($query) < 2) {
             return response()->json([
                 'success' => true,
-                'data'    => ['customers' => [], 'vehicles' => [], 'service_histories' => []],
-                'meta'    => ['query' => $query, 'version' => '2.0'],
+                'data' => ['customers' => [], 'vehicles' => [], 'service_histories' => []],
+                'meta' => ['query' => $query, 'version' => '2.0'],
             ]);
         }
 
-        $customers = MasterCustomer::where(fn($q) => $q
+        $customers = MasterCustomer::where(fn ($q) => $q
             ->where('name', 'like', "%$query%")
             ->orWhere('email', 'like', "%$query%")
             ->orWhere('telp_1', 'like', "%$query%")
             ->orWhere('id', $query)
         )->select('id', 'name', 'email', 'telp_1', 'source')->limit($limit)->get();
 
-        $vehicles = MasterVehicle::where(fn($q) => $q
+        $vehicles = MasterVehicle::where(fn ($q) => $q
             ->where('registration_no', 'like', "%$query%")
             ->orWhere('chassis_no', 'like', "%$query%")
             ->orWhere('engine_no', 'like', "%$query%")
@@ -50,13 +52,13 @@ class SearchController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'customers'        => $customers,
-                'vehicles'         => $vehicles,
+            'data' => [
+                'customers' => $customers,
+                'vehicles' => $vehicles,
                 'service_histories' => $histories,
             ],
             'meta' => [
-                'query'   => $query,
+                'query' => $query,
                 'version' => '2.0',
             ],
         ]);

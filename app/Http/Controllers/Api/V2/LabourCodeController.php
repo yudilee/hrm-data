@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
@@ -23,7 +25,7 @@ class LabourCodeController extends Controller
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(fn($q) => $q
+            $query->where(fn ($q) => $q
                 ->where('code', 'like', "%$s%")
                 ->orWhere('description', 'like', "%$s%")
             );

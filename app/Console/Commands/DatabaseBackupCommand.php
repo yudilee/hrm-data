@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\BackupSchedule;
 use App\Services\BackupService;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 class DatabaseBackupCommand extends Command
@@ -30,8 +32,9 @@ class DatabaseBackupCommand extends Command
     {
         $schedule = BackupSchedule::first();
 
-        if (!$schedule || !$schedule->enabled) {
+        if (! $schedule || ! $schedule->enabled) {
             $this->info('Database backups are currently disabled in settings.');
+
             return 0;
         }
 
@@ -39,7 +42,7 @@ class DatabaseBackupCommand extends Command
             $this->info('Starting automated database backup...');
             $backupService->create('Scheduled Automated Backup');
             $this->info('Backup generated successfully.');
-            
+
             if ($schedule->prune_enabled) {
                 $this->info('Pruning old backups...');
                 $backupService->prune(
@@ -49,11 +52,12 @@ class DatabaseBackupCommand extends Command
                 );
                 $this->info('Pruning complete.');
             }
-            
+
             return 0;
         } catch (\Exception $e) {
-            $this->error('Backup failed: ' . $e->getMessage());
-            Log::error('Scheduled database backup failed: ' . $e->getMessage());
+            $this->error('Backup failed: '.$e->getMessage());
+            Log::error('Scheduled database backup failed: '.$e->getMessage());
+
             return 1;
         }
     }

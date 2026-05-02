@@ -1,34 +1,39 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Exports;
 
 use App\Models\MasterCustomer;
+use App\Utils\BranchUtil;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithTitle, WithChunkReading, WithEvents
+class OdooCustomerExport implements FromQuery, WithChunkReading, WithColumnWidths, WithEvents, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     protected array $filters;
+
     protected array $customerBranchMap = [];
+
     protected bool $isExpanded;
-    protected array $branchColumns = [
-        'HRMSBY PC', 'HRMSBY CV', 'HRMJKT CV', 'HRMDPS PC', 'HRMDPS CV', 'HRMSMG PC', 'HRMSMG CV'
-    ];
+
+    protected array $branchColumns = BranchUtil::BRANCH_CODES;
 
     public function __construct(array $filters = [])
     {
         $this->filters = $filters;
-        $this->isExpanded = !empty($this->filters['expanded_branches']);
+        $this->isExpanded = ! empty($this->filters['expanded_branches']);
         $this->buildCustomerBranchMap();
     }
 
@@ -38,7 +43,7 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
      */
     protected function buildCustomerBranchMap(): void
     {
-        $rows = \Illuminate\Support\Facades\DB::table('master_vehicles')
+        $rows = DB::table('master_vehicles')
             ->whereNotNull('primary_customer_id')
             ->whereNotNull('branches_visited')
             ->where('branches_visited', '!=', '[]')
@@ -50,10 +55,12 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
         foreach ($rows as $row) {
             $cid = $row->primary_customer_id;
             // Keep only the most-recent vehicle's first branch per customer
-            if (isset($this->customerBranchMap[$cid])) continue;
+            if (isset($this->customerBranchMap[$cid])) {
+                continue;
+            }
 
             $branches = json_decode($row->branches_visited, true) ?? [];
-            if (!empty($branches)) {
+            if (! empty($branches)) {
                 $this->customerBranchMap[$cid] = $this->branchCodeToName($branches[0]);
             }
         }
@@ -61,48 +68,42 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
 
     protected function branchCodeToName(string $code): string
     {
-        return match($code) {
-            'SBY' => 'Hartono Motor Surabaya',
-            'JKT' => 'Hartono Motor Jakarta',
-            'DPS' => 'Hartono Motor Denpasar',
-            'SMG' => 'Hartono Motor Semarang',
-            default => '',
-        };
+        return BranchUtil::codeToSimpleBranch($code);
     }
 
     public function query()
     {
         $query = MasterCustomer::query();
 
-        if (!empty($this->filters['search'])) {
+        if (! empty($this->filters['search'])) {
             $s = $this->filters['search'];
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
-                  ->orWhere('email', 'like', "%{$s}%")
-                  ->orWhere('telp_1', 'like', "%{$s}%")
-                  ->orWhere('company_name', 'like', "%{$s}%")
-                  ->orWhere('full_address', 'like', "%{$s}%");
+                    ->orWhere('email', 'like', "%{$s}%")
+                    ->orWhere('telp_1', 'like', "%{$s}%")
+                    ->orWhere('company_name', 'like', "%{$s}%")
+                    ->orWhere('full_address', 'like', "%{$s}%");
             });
         }
 
-        if (!empty($this->filters['source'])) {
+        if (! empty($this->filters['source'])) {
             $query->where('source', $this->filters['source']);
         }
 
-        if (!empty($this->filters['customer_type'])) {
+        if (! empty($this->filters['customer_type'])) {
             $query->where('customer_type', $this->filters['customer_type']);
         }
 
-        if (!empty($this->filters['city'])) {
+        if (! empty($this->filters['city'])) {
             $city = $this->filters['city'];
             $query->where(function ($q) use ($city) {
                 $q->where('address_5', $city)
-                  ->orWhere('address_4', $city)
-                  ->orWhere('address_3', $city);
+                    ->orWhere('address_4', $city)
+                    ->orWhere('address_3', $city);
             });
         }
 
-        if (!empty($this->filters['vehicle_status'])) {
+        if (! empty($this->filters['vehicle_status'])) {
             if ($this->filters['vehicle_status'] === 'with_vehicles') {
                 $query->has('vehicles');
             } elseif ($this->filters['vehicle_status'] === 'no_vehicles') {
@@ -110,38 +111,38 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
             }
         }
 
-        if (!empty($this->filters['quality'])) {
+        if (! empty($this->filters['quality'])) {
             match ($this->filters['quality']) {
-                'high'   => $query->where('data_quality_score', '>', 60),
+                'high' => $query->where('data_quality_score', '>', 60),
                 'medium' => $query->whereBetween('data_quality_score', [21, 60]),
-                'low'    => $query->where('data_quality_score', '<=', 20),
-                default  => null,
+                'low' => $query->where('data_quality_score', '<=', 20),
+                default => null,
             };
         }
 
-        if (!empty($this->filters['visit_period'])) {
+        if (! empty($this->filters['visit_period'])) {
             $years = (int) $this->filters['visit_period'];
             if (in_array($years, [1, 2, 3, 5])) {
                 $cutoff = now()->subYears($years);
                 $query->where(function ($q) use ($cutoff) {
                     $q->whereHas('serviceHistories', function ($sq) use ($cutoff) {
                         $sq->where('DINVN', '>=', $cutoff)
-                           ->where('DINVN', '<=', now()->addYear());
+                            ->where('DINVN', '<=', now()->addYear());
                     })->orWhereHas('vehicles', function ($vq) use ($cutoff) {
                         $vq->where('last_service_date', '>=', $cutoff)
-                           ->where('last_service_date', '<=', now()->addYear());
+                            ->where('last_service_date', '<=', now()->addYear());
                     });
                 });
             }
         }
 
-        if (!empty($this->filters['multi_branch']) && $this->filters['multi_branch'] == '1') {
+        if (! empty($this->filters['multi_branch']) && $this->filters['multi_branch'] == '1') {
             $query->whereHas('vehicles', function ($q) {
                 $q->whereRaw('JSON_LENGTH(branches_visited) > 1');
             });
         }
 
-        if (!empty($this->filters['branch_source'])) {
+        if (! empty($this->filters['branch_source'])) {
             $query->whereJsonContains('sources', $this->filters['branch_source']);
         }
 
@@ -185,8 +186,8 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
 
     public function map($customer): array
     {
-        $isCompany    = $customer->customer_type === 'company';
-        $isIndividual = !$isCompany;
+        $isCompany = $customer->customer_type === 'company';
+        $isIndividual = ! $isCompany;
 
         $sources = $customer->sources ?? [];
 
@@ -195,9 +196,9 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
             foreach ($this->branchColumns as $bc) {
                 // Check if this specific branch is in sources, or if canonical source matches
                 $hasBranch = in_array($bc, $sources) || $customer->source === $bc;
-                
+
                 // Fallback to vehicle lookup if no sources are set and it matches the map
-                if (!$hasBranch && empty($sources) && isset($this->customerBranchMap[$customer->id])) {
+                if (! $hasBranch && empty($sources) && isset($this->customerBranchMap[$customer->id])) {
                     if ($this->branchCodeToFullName($bc) === $this->customerBranchMap[$customer->id]) {
                         // This fallback is tricky because vehicle map gives full name,
                         // and one full name maps to multiple codes (PC/CV). We'll set TRUE for both if it matches full name.
@@ -210,10 +211,10 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
             // Primary: use sources[] (all registered branches), comma-joined
             // Fallback 1: canonical HRM source code
             // Fallback 2: vehicle branch lookup map
-            if (!empty($sources)) {
+            if (! empty($sources)) {
                 // Map codes to full names and join
                 $branch = implode(', ', array_map(
-                    fn($s) => $this->branchCodeToFullName($s),
+                    fn ($s) => $this->branchCodeToFullName($s),
                     array_filter($sources)
                 ));
             } else {
@@ -225,7 +226,7 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
 
         return array_merge([
             $isIndividual ? 'TRUE' : 'FALSE',
-            $isCompany    ? 'TRUE' : 'FALSE',
+            $isCompany ? 'TRUE' : 'FALSE',
         ], $branchData, [
             $customer->name,
             'Indonesia',
@@ -245,13 +246,7 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
 
     private function branchCodeToFullName(string $code): string
     {
-        return match($code) {
-            'HRMSBY PC', 'HRMSBY CV'  => 'Hartono Motor Surabaya',
-            'HRMJKT CV'               => 'Hartono Motor Jakarta',
-            'HRMDPS PC', 'HRMDPS CV'  => 'Hartono Motor Denpasar',
-            'HRMSMG PC', 'HRMSMG CV'  => 'Hartono Motor Semarang',
-            default => $code,
-        };
+        return BranchUtil::codeToFullName($code);
     }
 
     public function styles(Worksheet $sheet): array
@@ -307,7 +302,7 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
                 foreach ($hints as $col => $hint) {
                     $sheet->setCellValue("{$col}2", $hint);
                 }
-                
+
                 $sheet->getStyle($range)->applyFromArray([
                     'font' => ['italic' => true, 'size' => 9, 'color' => ['rgb' => '666666']],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F0F4FA']],
@@ -346,12 +341,6 @@ class OdooCustomerExport implements FromQuery, WithHeadings, WithMapping, WithSt
 
     private function deriveBranch(?string $source): string
     {
-        return match($source) {
-            'HRMSBY PC', 'HRMSBY CV'  => 'Hartono Motor Surabaya',
-            'HRMJKT CV'               => 'Hartono Motor Jakarta',
-            'HRMDPS PC', 'HRMDPS CV'  => 'Hartono Motor Denpasar',
-            'HRMSMG PC', 'HRMSMG CV'  => 'Hartono Motor Semarang',
-            default => '',
-        };
+        return BranchUtil::codeToFullName($source ?? '');
     }
 }

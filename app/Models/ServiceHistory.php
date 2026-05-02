@@ -1,21 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ServiceHistory extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'service_histories';
 
     protected $fillable = [
-        'CJOBN', 'CINVN', 'CNPOL', 'CHASN', 'CENGN', 
-        'DRECV', 'DINVN', 'CCUST', 'ENAME', 'EADDR', 
+        'CJOBN', 'CINVN', 'CNPOL', 'CHASN', 'CENGN',
+        'DRECV', 'DINVN', 'CCUST', 'ENAME', 'EADDR',
         'ECITY', 'EPHON', 'ETYPE', 'DSTNK', 'EKMPOS',
-        'ALBRS', 'ASPTS', 'ASSPS', 'ASUBS', 'AOTHS1', 'AOTHS2', 
+        'ALBRS', 'ASPTS', 'ASSPS', 'ASUBS', 'AOTHS1', 'AOTHS2',
         'DISC', 'ATAXS', 'AMTRS', 'PTAX',
         'customer_id', 'vehicle_id', 'source',
-        'odoo_id', 'sync_status', 'last_synced_at'
+        'odoo_id', 'sync_status', 'last_synced_at',
     ];
 
     protected $casts = [
@@ -50,18 +56,22 @@ class ServiceHistory extends Model
     {
         return $this->belongsTo(MasterCustomer::class, 'customer_id', 'id');
     }
+
     /**
      * Fix corrupted years from FoxPro imports (e.g., 9019 -> 2019)
      */
     protected function normalizeYear($value)
     {
-        if (!$value) return null;
-        $date = \Carbon\Carbon::parse($value);
+        if (! $value) {
+            return null;
+        }
+        $date = Carbon::parse($value);
         if ($date->year > 2050) {
             $date->year(2000 + ($date->year % 100));
         } elseif ($date->year < 1970 && $date->year > 0) {
             $date->year(2000 + ($date->year % 100));
         }
+
         return $date;
     }
 

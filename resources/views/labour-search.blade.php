@@ -3,16 +3,24 @@
 @section('title', 'Labour Search (RTS) - Dealership MasterData Hub Data System')
 
 @section('breadcrumb')
-<li class="inline-flex items-center">
-    <svg class="w-3 h-3 text-gray-400 mx-1" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-    </svg>
-    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Labour Search</span>
-</li>
+    <x-ui.breadcrumb :items="[['label' => 'Labour Code Search']]" />
 @endsection
 
 @section('content')
 <div class="space-y-6" x-data="labourSearch()">
+
+    <x-ui.help-panel>
+        <x-slot name="trigger"><span label="How to use this tool"></span></x-slot>
+        <p class="text-xs leading-relaxed">
+            <strong>Labour Code Search</strong> looks up labour operations and estimated hours for a specific vehicle model based on the VIN prefix (first 6 characters).
+        </p>
+        <ul class="list-disc pl-5 mt-1 text-xs space-y-0.5">
+            <li><strong>Enter a full VIN</strong> (17 characters) — the system extracts the first 6 digits to identify your vehicle model.</li>
+            <li>Results are <strong>grouped by operation group</strong> (left sidebar) with details shown in the right panel.</li>
+            <li>Use the <strong>search box above the table</strong> to filter results by labour key, code, or description.</li>
+            <li>Click on a <strong>group name</strong> in the sidebar to jump to that section of the table.</li>
+        </ul>
+    </x-ui.help-panel>
     <!-- Header/Search Section -->
     <div class="rounded-2xl bg-white dark:bg-slate-800 p-8 shadow-sm ring-1 ring-gray-200 dark:ring-slate-700">
         <div class="mb-8">

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -34,7 +36,7 @@ class User extends Authenticatable
      */
     protected array $roleHierarchy = [
         'admin' => ['admin', 'user'],
-        'user'  => ['user'],
+        'user' => ['user'],
     ];
 
     /**
@@ -77,7 +79,7 @@ class User extends Authenticatable
 
     public function getRoleDisplayName(): string
     {
-        return match($this->role) {
+        return match ($this->role) {
             'admin' => 'Administrator',
             default => 'User',
         };

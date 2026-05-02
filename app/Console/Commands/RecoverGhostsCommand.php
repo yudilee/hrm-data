@@ -1,22 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\MasterCustomer;
 use App\Models\MasterVehicle;
-use App\Models\ServiceHistory;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class RecoverGhostsCommand extends Command
 {
     protected $signature = 'rts:recover-ghosts {--dry-run : Preview changes without writing to the database}';
+
     protected $description = 'Recover ghost vehicles and orphan customers from Service History';
 
     private bool $isDryRun = false;
+
     private int $customerRecovered = 0;
+
     private int $customerMerged = 0;
+
     private int $vehicleRecovered = 0;
 
     public function handle()
@@ -33,7 +37,7 @@ class RecoverGhostsCommand extends Command
         $this->recoverVehicles();
 
         // Link histories only once at the very end (was called redundantly after each sub-step)
-        if (!$this->isDryRun) {
+        if (! $this->isDryRun) {
             $this->info('Running final history linking pass...');
             $this->call('rts:link-history');
         }
@@ -49,6 +53,7 @@ class RecoverGhostsCommand extends Command
         );
 
         $this->info('Ghost Recovery Completed.');
+
         return Command::SUCCESS;
     }
 
@@ -72,10 +77,10 @@ class RecoverGhostsCommand extends Command
         $bar->start();
 
         foreach ($orphans as $orphan) {
-            $normName   = MasterCustomer::normalizeName($orphan->ENAME);
-            $phone1     = $this->cleanStr($orphan->EPHON);
+            $normName = MasterCustomer::normalizeName($orphan->ENAME);
+            $phone1 = $this->cleanStr($orphan->EPHON);
             $fingerprint = MasterCustomer::canonicalPhone($phone1);
-            $phoneType  = MasterCustomer::detectPhoneType($phone1);
+            $phoneType = MasterCustomer::detectPhoneType($phone1);
             $numericMagic = ctype_digit($orphan->CCUST) ? (int) $orphan->CCUST : 0;
 
             // 1. Primary Strategy: Name + Phone match (Strongest)
@@ -88,11 +93,11 @@ class RecoverGhostsCommand extends Command
 
             // 2. Secondary Strategy: Name + City match (Fallback)
             // Only attempt if Name is reasonably long (at least 5 chars) to avoid over-merging short names like "BUDI"
-            if (!$existing && $normName && strlen($normName) >= 5 && $orphan->ECITY) {
+            if (! $existing && $normName && strlen($normName) >= 5 && $orphan->ECITY) {
                 $existing = MasterCustomer::where('normalized_name', $normName)
-                    ->where(function($q) use ($orphan) {
+                    ->where(function ($q) use ($orphan) {
                         $q->where('address_3', $orphan->ECITY)
-                          ->orWhere('address_5', $orphan->ECITY);
+                            ->orWhere('address_5', $orphan->ECITY);
                     })
                     ->first();
             }
@@ -105,7 +110,7 @@ class RecoverGhostsCommand extends Command
                     $newMappings[] = ['branch' => $orphan->source, 'magic' => $numericMagic];
                 }
                 foreach ($newMappings as $m) {
-                    if (!$this->hasMapping($mappings, $m)) {
+                    if (! $this->hasMapping($mappings, $m)) {
                         $mappings[] = $m;
                     }
                 }
@@ -113,15 +118,19 @@ class RecoverGhostsCommand extends Command
                 // Append new phone number if it doesn't exist in telp_1..4
                 if ($phone1) {
                     $phones = [$existing->telp_1, $existing->telp_2, $existing->telp_3, $existing->telp_4];
-                    if (!in_array($phone1, array_filter($phones))) {
+                    if (! in_array($phone1, array_filter($phones))) {
                         // Find first empty slot
-                        if (!$existing->telp_2) $existing->telp_2 = $phone1;
-                        elseif (!$existing->telp_3) $existing->telp_3 = $phone1;
-                        elseif (!$existing->telp_4) $existing->telp_4 = $phone1;
+                        if (! $existing->telp_2) {
+                            $existing->telp_2 = $phone1;
+                        } elseif (! $existing->telp_3) {
+                            $existing->telp_3 = $phone1;
+                        } elseif (! $existing->telp_4) {
+                            $existing->telp_4 = $phone1;
+                        }
                     }
                 }
 
-                if (!$this->isDryRun) {
+                if (! $this->isDryRun) {
                     $existing->legacy_mappings = $mappings;
                     // Upgrade source from generic value to a real branch code if we now know it
                     if (in_array($existing->source, ['foxpro_recovery', null, '']) && $orphan->source) {
@@ -141,23 +150,23 @@ class RecoverGhostsCommand extends Command
                     $mappings[] = ['branch' => $branchSource, 'magic' => $numericMagic];
                 }
 
-                if (!$this->isDryRun) {
+                if (! $this->isDryRun) {
                     $customer = MasterCustomer::create([
-                        'name'               => $orphan->ENAME,
-                        'normalized_name'    => $normName,
-                        'phone_fingerprint'  => $fingerprint,
+                        'name' => $orphan->ENAME,
+                        'normalized_name' => $normName,
+                        'phone_fingerprint' => $fingerprint,
                         'primary_phone_type' => $phoneType,
-                        'address_1'          => $this->cleanStr($orphan->EADDR),
-                        'address_3'          => $this->cleanStr($orphan->ECITY),
-                        'full_address'       => collect([$this->cleanStr($orphan->EADDR), $this->cleanStr($orphan->ECITY)])->filter()->implode(', '),
-                        'telp_1'             => $phone1,
-                        'is_company'         => in_array($orphan->ETYPE, ['PT', 'CV', 'PO', 'UD']),
-                        'customer_type'      => in_array($orphan->ETYPE, ['PT', 'CV', 'PO', 'UD']) ? 'company' : 'individual',
-                        'source'             => $branchSource,
-                        'is_recovered'       => true,
-                        'legacy_mappings'    => $mappings,
+                        'address_1' => $this->cleanStr($orphan->EADDR),
+                        'address_3' => $this->cleanStr($orphan->ECITY),
+                        'full_address' => collect([$this->cleanStr($orphan->EADDR), $this->cleanStr($orphan->ECITY)])->filter()->implode(', '),
+                        'telp_1' => $phone1,
+                        'is_company' => in_array($orphan->ETYPE, ['PT', 'CV', 'PO', 'UD']),
+                        'customer_type' => in_array($orphan->ETYPE, ['PT', 'CV', 'PO', 'UD']) ? 'company' : 'individual',
+                        'source' => $branchSource,
+                        'is_recovered' => true,
+                        'legacy_mappings' => $mappings,
                         'data_quality_score' => 20,
-                        'date_created'       => $orphan->latest_invoice,
+                        'date_created' => $orphan->latest_invoice,
                     ]);
                     MasterCustomer::syncSourcesFromMappings($customer);
                     $customer->saveQuietly();
@@ -196,17 +205,26 @@ class RecoverGhostsCommand extends Command
             $sorted = $records->sortByDesc('latest_invoice');
             $latest = $sorted->first();
 
-            if (!$this->isDryRun) {
-                MasterVehicle::create([
-                    'chassis_no'          => $chassis,
-                    'engine_no'           => $this->cleanStr($latest->CENGN),
-                    'registration_no'     => $this->cleanStr($latest->CNPOL),
-                    'primary_customer_id' => $latest->customer_id,
-                    'source'              => 'foxpro_recovery',
-                    'is_recovered'        => true,
-                    'last_service_date'   => $latest->latest_invoice,
-                    'branches_visited'    => $sorted->pluck('source')->unique()->values()->toArray(),
-                ]);
+            if (! $this->isDryRun) {
+                try {
+                    MasterVehicle::firstOrCreate(
+                        ['chassis_no' => $chassis],
+                        [
+                            'engine_no' => $this->cleanStr($latest->CENGN),
+                            'registration_no' => $this->cleanStr($latest->CNPOL),
+                            'primary_customer_id' => $latest->customer_id,
+                            'source' => 'foxpro_recovery',
+                            'is_recovered' => true,
+                            'last_service_date' => $latest->latest_invoice,
+                            'branches_visited' => $sorted->pluck('source')->unique()->values()->toArray(),
+                        ]
+                    );
+                } catch (\Exception $e) {
+                    $this->warn("  Skipping chassis {$chassis}: {$e->getMessage()}");
+                    $bar->advance();
+
+                    continue;
+                }
             }
             $this->vehicleRecovered++;
             $bar->advance();
@@ -224,12 +242,14 @@ class RecoverGhostsCommand extends Command
                 return true;
             }
         }
+
         return false;
     }
 
     private function cleanStr($val): ?string
     {
         $val = trim((string) $val);
+
         return $val === '' ? null : $val;
     }
 }

@@ -5,14 +5,18 @@ import pymysql
 from dbfread import DBF
 from datetime import datetime
 
-# DB Config (from .env / host perspective)
-DB_HOST     = '127.0.0.1'
-DB_PORT     = 3309
-DB_NAME     = 'rts_labour_app'
-DB_USER     = 'sail'
-DB_PASSWORD = 'password'
+# DB Config — read from environment variables
+DB_HOST     = os.environ.get('DB_HOST', '127.0.0.1')
+DB_PORT     = int(os.environ.get('DB_PORT', '3306'))
+DB_NAME     = os.environ.get('DB_NAME', 'master_data')
+DB_USER     = os.environ.get('DB_USER', 'sail')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
 
-DBF_PATH = '/home/yudi/dev/rts_code/supplier/supplier.DBF'
+DBF_PATH = os.environ.get('DBF_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../supplier/supplier.DBF'))
+
+if not DB_PASSWORD:
+    print("Error: DB_PASSWORD environment variable is required.")
+    sys.exit(1)
 
 def clean(val):
     if val is None: return None

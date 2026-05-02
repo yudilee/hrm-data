@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\V2\VehicleResource;
 use App\Http\Resources\V2\ServiceHistoryResource;
+use App\Http\Resources\V2\VehicleResource;
 use App\Models\MasterVehicle;
 use Illuminate\Http\Request;
 
@@ -29,7 +31,7 @@ class VehicleController extends Controller
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(fn($q) => $q
+            $query->where(fn ($q) => $q
                 ->where('registration_no', 'like', "%$s%")
                 ->orWhere('chassis_no', 'like', "%$s%")
                 ->orWhere('engine_no', 'like', "%$s%")
@@ -53,10 +55,10 @@ class VehicleController extends Controller
             $query->where('updated_at', '>=', $request->updated_after);
         }
 
-        $allowed   = ['registration_no', 'chassis_no', 'description', 'last_service_date', 'true_franchise'];
-        $sort      = in_array($request->sort, $allowed) ? $request->sort : 'last_service_date';
+        $allowed = ['registration_no', 'chassis_no', 'description', 'last_service_date', 'true_franchise'];
+        $sort = in_array($request->sort, $allowed) ? $request->sort : 'last_service_date';
         $direction = $request->direction === 'asc' ? 'asc' : 'desc';
-        $perPage   = min((int) $request->get('per_page', 50), 200);
+        $perPage = min((int) $request->get('per_page', 50), 200);
 
         $query->orderBy($sort, $direction);
 

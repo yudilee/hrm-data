@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
@@ -8,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 class ScoreQualityCommand extends Command
 {
     protected $signature = 'rts:score-quality';
+
     protected $description = 'Recalculate data quality score for all customers using a single bulk SQL UPDATE';
 
     public function handle()
@@ -32,6 +35,7 @@ class ScoreQualityCommand extends Command
 
         $elapsed = round(microtime(true) - $startTime, 2);
         $this->info("✅ Updated quality scores for {$affected} customers in {$elapsed}s.");
+
         return Command::SUCCESS;
     }
 }

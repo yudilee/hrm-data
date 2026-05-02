@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\LoginAttempt;
+use App\Models\User;
+use App\Models\UserSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\RateLimiter;
 
 class AuthController extends Controller
 {
@@ -17,13 +19,14 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('import.index');
         }
+
         return view('auth.login');
     }
 
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required',
+            'email' => 'required',
             'password' => 'required',
         ]);
 
@@ -33,7 +36,7 @@ class AuthController extends Controller
         // Brute-force protection: 10+ failures in 15 min from same IP
         if (LoginAttempt::recentFailures($ip, 15) >= 10) {
             Log::channel('security')->warning('Login brute-force lockout triggered', [
-                'ip'    => $ip,
+                'ip' => $ip,
                 'email' => $request->email,
             ]);
 
@@ -47,6 +50,7 @@ class AuthController extends Controller
         if ($user && Hash::check($request->password, $user->password)) {
             $this->completeLogin($user, $request);
             LoginAttempt::record($request->email, true, $ip, $ua);
+
             return redirect()->intended(route('import.index'));
         }
 
@@ -54,7 +58,7 @@ class AuthController extends Controller
 
         Log::channel('security')->info('Failed login attempt', [
             'email' => $request->email,
-            'ip'    => $ip,
+            'ip' => $ip,
         ]);
 
         return back()->withErrors([
@@ -62,13 +66,12 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
-
     protected function completeLogin($user, Request $request): void
     {
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
-        
-        \App\Models\UserSession::recordLogin(
+
+        UserSession::recordLogin(
             $user->id,
             session()->getId(),
             $request->ip(),
@@ -81,6 +84,7 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('import.index');
         }
+
         return view('auth.register');
     }
 
@@ -101,14 +105,15 @@ class AuthController extends Controller
         ]);
 
         Auth::login($user);
+
         return redirect()->route('import.index');
     }
 
     public function logout(Request $request)
     {
-        \App\Models\UserSession::where('session_id', session()->getId())
+        UserSession::where('session_id', session()->getId())
             ->update(['is_current' => false]);
-        
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

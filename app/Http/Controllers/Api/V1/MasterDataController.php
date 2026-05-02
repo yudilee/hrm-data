@@ -1,15 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\MasterCustomer;
 use App\Models\MasterVehicle;
 use App\Models\ServiceHistory;
+use Illuminate\Http\Request;
 
 class MasterDataController extends Controller
 {
+    protected function deprecatedResponse($data, int $status = 200)
+    {
+        return response()->json($data, $status)
+            ->header('Deprecation', 'true')
+            ->header('Sunset', 'Sat, 31 Dec 2026 23:59:59 GMT')
+            ->header('Link', '</api/v2/customers>; rel="successor-version"');
+    }
+
+    protected function deprecatedPaginated($paginated)
+    {
+        return $this->deprecatedResponse($paginated);
+    }
+
     public function customers(Request $request)
     {
         $query = MasterCustomer::query();
@@ -18,29 +33,29 @@ class MasterDataController extends Controller
             $query->where('updated_at', '>=', $request->input('updated_after'));
         }
 
-        return response()->json($query->paginate(500));
+        return $this->deprecatedPaginated($query->paginate(500));
     }
 
     public function vehicles(Request $request)
     {
         $query = MasterVehicle::with('customer');
-        
+
         if ($request->has('updated_after')) {
             $query->where('updated_at', '>=', $request->input('updated_after'));
         }
 
-        return response()->json($query->paginate(500));
+        return $this->deprecatedPaginated($query->paginate(500));
     }
 
     public function serviceRecords(Request $request)
     {
         $query = ServiceHistory::with(['labours', 'parts']);
-        
+
         if ($request->has('updated_after')) {
             $query->where('updated_at', '>=', $request->input('updated_after'));
         }
 
-        return response()->json($query->paginate(500));
+        return $this->deprecatedPaginated($query->paginate(500));
     }
 
     public function confirmSync(Request $request)
@@ -56,7 +71,7 @@ class MasterDataController extends Controller
         $type = $request->input('type');
         $records = $request->input('records');
 
-        $modelClass = match($type) {
+        $modelClass = match ($type) {
             'customer' => MasterCustomer::class,
             'vehicle' => MasterVehicle::class,
             'service_history' => ServiceHistory::class,
@@ -76,10 +91,10 @@ class MasterDataController extends Controller
             }
         }
 
-        return response()->json([
-            'message' => 'Sync confirmation successful', 
+        return $this->deprecatedResponse([
+            'message' => 'Sync confirmation successful',
             'processed' => $processed,
-            'requested' => count($records)
+            'requested' => count($records),
         ]);
     }
 }

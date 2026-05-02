@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Exports;
 
 use App\Models\MasterVehicle;
+use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\Exportable;
 
 class MasterVehicleExport implements FromQuery, WithHeadings, WithMapping
 {
@@ -23,25 +25,25 @@ class MasterVehicleExport implements FromQuery, WithHeadings, WithMapping
     {
         $query = MasterVehicle::query()->with('customer');
 
-        if (!empty($this->filters['search'])) {
+        if (! empty($this->filters['search'])) {
             $search = $this->filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('registration_no', 'like', "%{$search}%")
-                  ->orWhere('chassis_no', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('engine_no', 'like', "%{$search}%");
+                    ->orWhere('chassis_no', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('engine_no', 'like', "%{$search}%");
             });
         }
 
-        if (!empty($this->filters['franchise'])) {
+        if (! empty($this->filters['franchise'])) {
             $query->where('true_franchise', $this->filters['franchise']);
         }
 
-        if (!empty($this->filters['branch'])) {
+        if (! empty($this->filters['branch'])) {
             $query->whereJsonContains('branches_visited', $this->filters['branch']);
         }
 
-        if (!empty($this->filters['year'])) {
+        if (! empty($this->filters['year'])) {
             $query->whereYear('last_service_date', $this->filters['year']);
         }
 

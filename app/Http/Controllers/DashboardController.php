@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use App\Models\MasterVehicle;
 use App\Models\MasterCustomer;
-use Illuminate\Http\Request;
+use App\Models\MasterVehicle;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller

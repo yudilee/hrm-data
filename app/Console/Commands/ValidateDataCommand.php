@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
@@ -8,9 +10,11 @@ use Illuminate\Support\Facades\DB;
 class ValidateDataCommand extends Command
 {
     protected $signature = 'rts:validate-data {--json : Output results as JSON}';
+
     protected $description = 'Run a comprehensive data integrity and validity check across all master data tables';
 
-    private array $issues  = [];
+    private array $issues = [];
+
     private array $summary = [];
 
     public function handle()
@@ -33,14 +37,16 @@ class ValidateDataCommand extends Command
 
         if ($this->option('json')) {
             $this->line(json_encode([
-                'issues'  => $this->issues,
+                'issues' => $this->issues,
                 'summary' => $this->summary,
                 'elapsed' => $elapsed,
             ], JSON_PRETTY_PRINT));
+
             return Command::SUCCESS;
         }
 
         $this->displayResults($elapsed);
+
         return empty($this->issues) ? Command::SUCCESS : Command::FAILURE;
     }
 
@@ -55,7 +61,7 @@ class ValidateDataCommand extends Command
             ->count();
 
         $this->addResult('Dangling Vehicle FK', $count, 0,
-            "Vehicles with primary_customer_id pointing to non-existent customers",
+            'Vehicles with primary_customer_id pointing to non-existent customers',
             'critical');
     }
 
@@ -76,11 +82,11 @@ class ValidateDataCommand extends Command
         $total = DB::table('service_histories')->count();
 
         $this->addResult('Service Histories without Vehicle Link', $noVehicle, 0,
-            "Service histories with a chassis_no but no resolved vehicle_id (run rts:link-history or rts:recover-ghosts)",
+            'Service histories with a chassis_no but no resolved vehicle_id (run rts:link-history or rts:recover-ghosts)',
             'warning');
 
         $this->addResult('Service Histories without Customer Link', $noCustomer, 0,
-            "Service histories with a CCUST but no resolved customer_id (run rts:link-history)",
+            'Service histories with a CCUST but no resolved customer_id (run rts:link-history)',
             'warning');
 
         $this->summary[] = ['Total Service Histories', number_format($total)];
@@ -100,15 +106,15 @@ class ValidateDataCommand extends Command
             ->first();
 
         $this->addResult('Customers with No Name AND No Phone (collision risk)', $count, 0,
-            "Records that could collapse into a single bucket during re-import (see: Anonymous Collision Fix)",
+            'Records that could collapse into a single bucket during re-import (see: Anonymous Collision Fix)',
             'warning');
 
         if ($maxVehicles && $maxVehicles->c > 500) {
             $this->issues[] = [
-                'check'    => 'Suspiciously Large Fleet (possible collision)',
-                'count'    => $maxVehicles->c,
+                'check' => 'Suspiciously Large Fleet (possible collision)',
+                'count' => $maxVehicles->c,
                 'severity' => 'critical',
-                'detail'   => "Customer ID {$maxVehicles->primary_customer_id} has {$maxVehicles->c} vehicles — possible data collision",
+                'detail' => "Customer ID {$maxVehicles->primary_customer_id} has {$maxVehicles->c} vehicles — possible data collision",
             ];
         }
     }
@@ -125,12 +131,12 @@ class ValidateDataCommand extends Command
 
         foreach ($largeFleets as $fleet) {
             $customer = DB::table('master_customers')->where('id', $fleet->primary_customer_id)->first(['name', 'company_name']);
-            $name     = $customer->company_name ?: $customer->name ?: "(No Name)";
+            $name = $customer->company_name ?: $customer->name ?: '(No Name)';
             $this->issues[] = [
-                'check'    => 'Large Fleet',
-                'count'    => $fleet->c,
+                'check' => 'Large Fleet',
+                'count' => $fleet->c,
                 'severity' => $fleet->c > 500 ? 'critical' : 'warning',
-                'detail'   => "Customer #{$fleet->primary_customer_id} ({$name}) has {$fleet->c} vehicles",
+                'detail' => "Customer #{$fleet->primary_customer_id} ({$name}) has {$fleet->c} vehicles",
             ];
         }
 
@@ -148,7 +154,7 @@ class ValidateDataCommand extends Command
             ->count();
 
         $this->addResult('Duplicate Chassis Numbers', $dups, 0,
-            "Chassis numbers appearing more than once (violates uniqueness constraint)",
+            'Chassis numbers appearing more than once (violates uniqueness constraint)',
             'critical');
     }
 
@@ -160,7 +166,7 @@ class ValidateDataCommand extends Command
             ->where('email', '!=', '')
             ->where(function ($q) {
                 $q->whereRaw("email NOT LIKE '%@%'")
-                  ->orWhereRaw("email NOT LIKE '%.%'");
+                    ->orWhereRaw("email NOT LIKE '%.%'");
             })
             ->count();
 
@@ -182,7 +188,7 @@ class ValidateDataCommand extends Command
             ->count();
 
         $this->addResult('Placeholder Phone Numbers', $placeholder, 0,
-            "Customers with telp_1 set to a known placeholder value (0, -, N/A)",
+            'Customers with telp_1 set to a known placeholder value (0, -, N/A)',
             'info');
 
         // Check for suspiciously short phone numbers (less than 7 digits)
@@ -193,20 +199,20 @@ class ValidateDataCommand extends Command
             ->count();
 
         $this->addResult('Suspiciously Short Phone Numbers (<7 digits)', $tooShort, 0,
-            "Customers with telp_1 having fewer than 7 numeric digits",
+            'Customers with telp_1 having fewer than 7 numeric digits',
             'info');
     }
 
     private function checkQualityScoreDistribution(): void
     {
         $dist = DB::table('master_customers')
-            ->select(DB::raw("
+            ->select(DB::raw('
                 SUM(CASE WHEN data_quality_score = 0  THEN 1 ELSE 0 END) as score_0,
                 SUM(CASE WHEN data_quality_score <= 20 AND data_quality_score > 0  THEN 1 ELSE 0 END) as score_low,
                 SUM(CASE WHEN data_quality_score > 20 AND data_quality_score <= 60 THEN 1 ELSE 0 END) as score_mid,
                 SUM(CASE WHEN data_quality_score > 60 THEN 1 ELSE 0 END) as score_high,
                 COUNT(*) as total
-            "))
+            '))
             ->first();
 
         $this->summary[] = ['Total Customers',               number_format($dist->total)];
@@ -226,10 +232,10 @@ class ValidateDataCommand extends Command
             ->count();
 
         $this->addResult('Orphan Ghost Vehicles (no service history)', $orphanGhosts, 0,
-            "Recovered ghost vehicles that have no service history linked — may be duplicates of LVS vehicles",
+            'Recovered ghost vehicles that have no service history linked — may be duplicates of LVS vehicles',
             'info');
 
-        $totalVehicles  = DB::table('master_vehicles')->count();
+        $totalVehicles = DB::table('master_vehicles')->count();
         $totalRecovered = DB::table('master_vehicles')->where('is_recovered', true)->count();
         $this->summary[] = ['Total Vehicles',               number_format($totalVehicles)];
         $this->summary[] = ['Ghost/Recovered Vehicles',     number_format($totalRecovered)];
@@ -244,10 +250,10 @@ class ValidateDataCommand extends Command
 
         if ($count > $expectedMax) {
             $this->issues[] = [
-                'check'    => $check,
-                'count'    => $count,
+                'check' => $check,
+                'count' => $count,
                 'severity' => $severity,
-                'detail'   => $detail,
+                'detail' => $detail,
             ];
         }
     }
@@ -255,17 +261,17 @@ class ValidateDataCommand extends Command
     private function displayResults(float $elapsed): void
     {
         // Issues table
-        if (!empty($this->issues)) {
+        if (! empty($this->issues)) {
             $this->newLine();
             $this->warn('⚠️  Issues Found:');
             $rows = [];
             foreach ($this->issues as $issue) {
                 $icon = match ($issue['severity']) {
                     'critical' => '🔴',
-                    'warning'  => '🟡',
-                    default    => '🔵',
+                    'warning' => '🟡',
+                    default => '🔵',
                 };
-                $rows[] = [$icon . ' ' . $issue['severity'], $issue['check'], number_format($issue['count']), $issue['detail']];
+                $rows[] = [$icon.' '.$issue['severity'], $issue['check'], number_format($issue['count']), $issue['detail']];
             }
             $this->table(['Severity', 'Check', 'Count', 'Detail'], $rows);
         } else {
@@ -279,7 +285,7 @@ class ValidateDataCommand extends Command
 
         $this->newLine();
         $issueCount = count($this->issues);
-        $criticalCount = count(array_filter($this->issues, fn($i) => $i['severity'] === 'critical'));
+        $criticalCount = count(array_filter($this->issues, fn ($i) => $i['severity'] === 'critical'));
         $this->line("Validation completed in {$elapsed}s — {$issueCount} issue(s) found ({$criticalCount} critical).");
     }
 }

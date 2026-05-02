@@ -1,0 +1,75 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * Verify HMAC-SHA256 signed requests from Odoo.
+ *
+ * Validates:
+ * 1. Signature matches (prevents URL tampering)
+ * 2. Timestamp not expired (prevents replay after expiry)
+ * 3. Nonce not reused (prevents replay within expiry window)
+ */
+class VerifyOdooSignature
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $secret = config('services.odoo.shared_secret');
+
+        if (empty($secret)) {
+            Log::channel('security')->error('Odoo integration: shared_secret not configured');
+            abort(503, 'Odoo integration is not configured.');
+        }
+
+        // 1. Check expiry
+        $exp = (int) $request->input('exp', 0);
+        if (time() > $exp) {
+            Log::channel('security')->warning('Odoo signed URL expired', [
+                'exp' => $exp,
+                'now' => time(),
+                'ip' => $request->ip(),
+            ]);
+            abort(403, 'This link has expired. Please try again from Odoo.');
+        }
+
+        // 2. Verify HMAC signature
+        $signature = $request->input('sig', '');
+        $params = $request->except('sig');
+        ksort($params);
+        $message = collect($params)->map(fn ($v, $k) => "{$k}={$v}")->join('&');
+        $expected = hash_hmac('sha256', $message, $secret);
+
+        if (! hash_equals($expected, $signature)) {
+            Log::channel('security')->warning('Odoo signed URL: invalid signature', [
+                'ip' => $request->ip(),
+                'params' => array_keys($params),
+            ]);
+            abort(403, 'Invalid signature. This request may have been tampered with.');
+        }
+
+        // 3. Check nonce not reused (prevent replay attacks)
+        $nonce = $request->input('nonce', '');
+        if (! empty($nonce)) {
+            $nonceKey = 'odoo_nonce:' . $nonce;
+            if (Cache::has($nonceKey)) {
+                Log::channel('security')->warning('Odoo signed URL: nonce replay attempt', [
+                    'nonce' => $nonce,
+                    'ip' => $request->ip(),
+                ]);
+                abort(403, 'This link has already been used. Please generate a new one from Odoo.');
+            }
+            // Store nonce for 2x the URL expiry period
+            $expirySeconds = config('services.odoo.url_expiry_seconds', 300);
+            Cache::put($nonceKey, true, $expirySeconds * 2);
+        }
+
+        return $next($request);
+    }
+}

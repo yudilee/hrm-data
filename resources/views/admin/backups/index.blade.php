@@ -2,10 +2,18 @@
 
 @section('title', 'Database Backups')
 
+@section('breadcrumb')
+    <x-ui.breadcrumb :items="[['label' => 'Admin', 'url' => route('admin.users.index')], ['label' => 'Backups']]" />
+@endsection
+
 @section('content')
 <div class="space-y-6">
     {{-- Create Backup --}}
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+        <x-ui.help-panel>
+            <x-slot name="trigger"><span label="Help"></span></x-slot>
+            <p class="text-xs">Backups capture the full database state. They are stored locally with gzip compression. The backup scheduler (if enabled in Settings) can auto-prune old backups based on daily/weekly/monthly retention rules.</p>
+        </x-ui.help-panel>
         <h3 class="text-lg font-semibold mb-4">Create Backup</h3>
         <form method="POST" action="{{ route('admin.backups.create') }}" class="flex gap-4 items-end">
             @csrf
@@ -23,9 +31,21 @@
         <form method="POST" action="{{ route('admin.backups.restore-file') }}" enctype="multipart/form-data" class="flex gap-4 items-end">
             @csrf
             <div class="flex-1">
-                <input type="file" name="backup_file" required accept=".gz,.sqlite" class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 dark:file:bg-emerald-900/30 file:text-emerald-700 dark:file:text-emerald-300">
+                <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Backup file (.gz)</label>
+                <input type="file" name="backup_file" required accept=".gz" class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 dark:file:bg-emerald-900/30 file:text-emerald-700 dark:file:text-emerald-300">
             </div>
-            <button type="submit" class="px-6 py-2.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors whitespace-nowrap" onclick="return confirm('This will replace the current database. Are you sure?')">Restore</button>
+            <div>
+                <input type="hidden" name="confirm" value="RESTORE">
+            </div>
+            <x-ui.confirm-modal
+                title="Restore Database"
+                message="This will replace the current database with the uploaded backup. All current data will be lost. Are you sure?"
+                confirmText="Yes, Restore"
+            >
+                <x-slot name="trigger">
+                    <span class="inline-block px-6 py-2.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors cursor-pointer">Restore</span>
+                </x-slot>
+            </x-ui.confirm-modal>
         </form>
     </div>
 
@@ -54,19 +74,43 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2">
                                 <a href="{{ route('admin.backups.download', $backup->filename) }}" class="text-blue-500 hover:text-blue-700 text-xs font-medium">Download</a>
-                                <form method="POST" action="{{ route('admin.backups.restore', $backup->filename) }}" class="inline" onsubmit="return confirm('Replace current database with this backup?')">
-                                    @csrf
-                                    <button class="text-amber-500 hover:text-amber-700 text-xs font-medium">Restore</button>
-                                </form>
-                                <form method="POST" action="{{ route('admin.backups.destroy', $backup->filename) }}" class="inline" onsubmit="return confirm('Delete this backup?')">
-                                    @csrf @method('DELETE')
-                                    <button class="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
-                                </form>
+
+                                <x-ui.confirm-modal
+                                    title="Restore Backup"
+                                    message="This will replace the current database with backup '{{ $backup->filename }}'. All current data will be lost."
+                                    confirmText="Yes, Restore"
+                                    formAction="{{ route('admin.backups.restore', $backup->filename) }}"
+                                    formMethod="POST"
+                                >
+                                    <x-slot name="trigger">
+                                        <span class="text-amber-500 hover:text-amber-700 text-xs font-medium cursor-pointer">Restore</span>
+                                    </x-slot>
+                                </x-ui.confirm-modal>
+
+                                <x-ui.confirm-modal
+                                    title="Delete Backup"
+                                    message="Permanently delete backup '{{ $backup->filename }}'?"
+                                    confirmText="Delete"
+                                    formAction="{{ route('admin.backups.destroy', $backup->filename) }}"
+                                    formMethod="DELETE"
+                                >
+                                    <x-slot name="trigger">
+                                        <span class="text-red-500 hover:text-red-700 text-xs font-medium cursor-pointer">Delete</span>
+                                    </x-slot>
+                                </x-ui.confirm-modal>
                             </div>
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No backups yet.</td></tr>
+                    <tr>
+                        <td colspan="6" class="px-4 py-12">
+                            <x-ui.empty-state title="No backups yet" message="Create your first backup to get started.">
+                                <x-slot name="icon">
+                                    <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+                                </x-slot>
+                            </x-ui.empty-state>
+                        </td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>

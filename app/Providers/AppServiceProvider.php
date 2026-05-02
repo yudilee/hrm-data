@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -33,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
         // API rate limiting: admin gets 300/min, users get 60/min
         RateLimiter::for('api', function (Request $request) {
             $user = $request->user();
+
             return $user?->role === 'admin'
                 ? Limit::perMinute(300)->by($user->id)
                 : Limit::perMinute(60)->by($user?->id ?: $request->ip());

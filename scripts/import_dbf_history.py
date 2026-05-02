@@ -23,16 +23,18 @@ dbfread.field_parser.FieldParser.parseN = robust_parseN
 # Environment Awareness
 DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
 DB_PORT = int(os.getenv('DB_PORT', '3306'))
+DB_PASSWORD = os.getenv('DB_PASSWORD')
 
-if DB_HOST == '127.0.0.1' and DB_PORT == 3306:
-    DB_PORT = 3309 
+if not DB_PASSWORD:
+    print("Error: DB_PASSWORD environment variable is required.")
+    sys.exit(1)
 
 DB_CONFIG = {
     'host': DB_HOST,
     'port': DB_PORT,
     'user': os.getenv('DB_USERNAME', 'sail'),
-    'password': os.getenv('DB_PASSWORD', 'password'),
-    'database': os.getenv('DB_DATABASE', 'rts_labour_app')
+    'password': DB_PASSWORD,
+    'database': os.getenv('DB_DATABASE', 'master_data')
 }
 
 def clean_str(val):

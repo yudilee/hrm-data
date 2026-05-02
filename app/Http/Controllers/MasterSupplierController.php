@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\MasterSupplier;
@@ -12,11 +14,11 @@ class MasterSupplierController extends Controller
         $query = MasterSupplier::query();
 
         if ($request->search) {
-            $query->where(function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('code', 'like', '%' . $request->search . '%')
-                  ->orWhere('city', 'like', '%' . $request->search . '%')
-                  ->orWhere('contact_person', 'like', '%' . $request->search . '%');
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%'.$request->search.'%')
+                    ->orWhere('code', 'like', '%'.$request->search.'%')
+                    ->orWhere('city', 'like', '%'.$request->search.'%')
+                    ->orWhere('contact_person', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -25,7 +27,7 @@ class MasterSupplierController extends Controller
         }
 
         $perPage = $request->get('per_page', 25);
-        if (!in_array($perPage, [25, 50, 100, 200])) {
+        if (! in_array($perPage, [25, 50, 100, 200])) {
             $perPage = 25;
         }
 
@@ -37,6 +39,7 @@ class MasterSupplierController extends Controller
     public function show($id)
     {
         $supplier = MasterSupplier::findOrFail($id);
+
         return response()->json($supplier);
     }
 }

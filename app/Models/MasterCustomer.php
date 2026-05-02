@@ -1,11 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use App\Services\CustomerNormalizer;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MasterCustomer extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'master_customers';
     // Removed specific primaryKey because it's now 'id' (auto-increment)
 
@@ -48,7 +54,7 @@ class MasterCustomer extends Model
         'is_company' => 'boolean',
         'is_recovered' => 'boolean',
         'legacy_mappings' => 'array',
-        'sources'         => 'array',
+        'sources' => 'array',
     ];
 
     /**
@@ -95,62 +101,19 @@ class MasterCustomer extends Model
      */
     public static function normalizeName($name)
     {
-        if (!$name) return '';
-        
-        $n = strtoupper(trim($name));
-        
-        // Remove common titles and salutations (Indonesian and English)
-        // Includes: MR, MRS, MS, H (Haji), HJ (Hajjah), DR (Doctor), DRS (Doktorandus), IR (Insinyur), 
-        // PROF, KOL (Kolonel), MAY (Mayor), CAPT (Captain)
-        $titles = ['MR', 'MRS', 'MS', 'H', 'HJ', 'DR', 'DRS', 'IR', 'PROF', 'KOL', 'MAY', 'CAPT', 'IBU', 'BPK', 'BAPAK'];
-        $pattern = '/^(' . implode('|', $titles) . ')\.?\s+/i';
-        $n = preg_replace($pattern, '', $n);
-        
-        // Also strip common legal entity prefixes if they are at the start
-        $entities = ['PT', 'CV', 'UD', 'PO'];
-        $entityPattern = '/^(' . implode('|', $entities) . ')\.?\s+/i';
-        $n = preg_replace($entityPattern, '', $n);
-        
-        return preg_replace('/[.,\s]/', '', $n);
+        return app(CustomerNormalizer::class)->normalizeName($name);
     }
 
-    /**
-     * Canonicalizes an Indonesian phone number.
-     */
     public static function canonicalPhone($phone)
     {
-        if (!$phone) return null;
-        
-        $p = preg_replace('/[^0-9+]/', '', $phone);
-        
-        if (str_starts_with($p, '+62')) {
-            $p = '0' . substr($p, 3);
-        } elseif (str_starts_with($p, '62') && strlen($p) > 9) {
-            $p = '0' . substr($p, 2);
-        }
-        
-        return $p !== '' ? $p : null;
+        return app(CustomerNormalizer::class)->canonicalPhone($phone);
     }
 
-    /**
-     * Detects if phone is mobile, landline, or unknown.
-     */
     public static function detectPhoneType($phone)
     {
-        $p = self::canonicalPhone($phone);
-        if (!$p) return 'unknown';
-
-        if (str_starts_with($p, '08')) {
-            return 'mobile';
-        }
-
-        // Common area codes (simplified check)
-        if (preg_match('/^0[2-9][0-9]/', $p)) {
-            return 'landline';
-        }
-
-        return 'unknown';
+        return app(CustomerNormalizer::class)->detectPhoneType($phone);
     }
+
     /**
      * Compute and write the `sources` JSON array from legacy_mappings.
      *

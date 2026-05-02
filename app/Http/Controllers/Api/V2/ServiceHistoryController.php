@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
@@ -28,7 +30,7 @@ class ServiceHistoryController extends Controller
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(fn($q) => $q
+            $query->where(fn ($q) => $q
                 ->where('CINVN', 'like', "%$s%")
                 ->orWhere('CHASN', 'like', "%$s%")
                 ->orWhere('CNPOL', 'like', "%$s%")
@@ -44,7 +46,7 @@ class ServiceHistoryController extends Controller
         }
 
         if ($request->filled('branch')) {
-            $query->where('branch', $request->branch);
+            $query->where('source', $request->branch);
         }
 
         if ($request->filled('date_from')) {
@@ -72,6 +74,7 @@ class ServiceHistoryController extends Controller
     public function show(int $id)
     {
         $record = ServiceHistory::with(['labours', 'parts', 'vehicle'])->findOrFail($id);
+
         return new ServiceHistoryResource($record);
     }
 }

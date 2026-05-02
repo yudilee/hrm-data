@@ -39,10 +39,17 @@
                             <div class="flex items-center gap-2">
                                 <a href="{{ route('admin.users.edit', $user) }}" class="text-blue-500 hover:text-blue-700 text-xs font-medium">Edit</a>
                                 @if($user->id !== auth()->id())
-                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Delete this user?')">
-                                    @csrf @method('DELETE')
-                                    <button class="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
-                                </form>
+                                <x-ui.confirm-modal
+                                    title="Delete User"
+                                    message="Permanently delete user '{{ $user->name }}'? This cannot be undone."
+                                    confirmText="Delete"
+                                    formAction="{{ route('admin.users.destroy', $user) }}"
+                                    formMethod="DELETE"
+                                >
+                                    <x-slot name="trigger">
+                                        <span class="text-red-500 hover:text-red-700 text-xs font-medium cursor-pointer">Delete</span>
+                                    </x-slot>
+                                </x-ui.confirm-modal>
                                 @endif
                             </div>
                         </td>

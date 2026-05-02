@@ -1,11 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MasterVehicle extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'master_vehicles';
     // Removed specific primaryKey because it's now 'id' (auto-increment)
 
@@ -38,14 +44,14 @@ class MasterVehicle extends Model
     ];
 
     protected $casts = [
-        'reg_date'          => 'date',
-        'created_date'      => 'date',
-        'last_edited_date'  => 'date',
+        'reg_date' => 'date',
+        'created_date' => 'date',
+        'last_edited_date' => 'date',
         'last_service_date' => 'date',
-        'last_synced_at'    => 'datetime',
-        'branches_visited'  => 'array',
-        'legacy_mappings'   => 'array',
-        'is_recovered'      => 'boolean',
+        'last_synced_at' => 'datetime',
+        'branches_visited' => 'array',
+        'legacy_mappings' => 'array',
+        'is_recovered' => 'boolean',
     ];
 
     /**
@@ -79,18 +85,22 @@ class MasterVehicle extends Model
     {
         return $this->hasMany(ServiceHistory::class, 'vehicle_id', 'id');
     }
+
     /**
      * Fix corrupted years from FoxPro imports (e.g., 9019 -> 2019)
      */
     protected function normalizeYear($value)
     {
-        if (!$value) return null;
-        $date = \Carbon\Carbon::parse($value);
+        if (! $value) {
+            return null;
+        }
+        $date = Carbon::parse($value);
         if ($date->year > 2050) {
             $date->year(2000 + ($date->year % 100));
         } elseif ($date->year < 1970 && $date->year > 0) {
             $date->year(2000 + ($date->year % 100));
         }
+
         return $date;
     }
 

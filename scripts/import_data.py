@@ -9,8 +9,12 @@ DIRECTORY = os.environ.get('DATA_DIR', '/var/www/html/Data Operation')
 DB_HOST = os.environ.get('DB_HOST', 'mysql')
 DB_PORT = int(os.environ.get('DB_PORT', 3306))
 DB_USER = os.environ.get('DB_USER', 'sail')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', 'password')
-DB_NAME = os.environ.get('DB_NAME', 'rts_labour_app')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
+DB_NAME = os.environ.get('DB_NAME', 'master_data')
+
+if not DB_PASSWORD:
+    print("Error: DB_PASSWORD environment variable is required.")
+    exit(1)
 
 def clean_time(time_str):
     if pd.isna(time_str):
@@ -56,8 +60,9 @@ def main():
     ''')
     conn.commit()
 
-    print("Truncating old data...")
-    cursor.execute('TRUNCATE TABLE labour_codes')
+    print("Clearing old data...")
+    conn.start_transaction()
+    cursor.execute('DELETE FROM labour_codes')
     conn.commit()
 
     files = [f for f in os.listdir(DIRECTORY) if f.endswith('.xls') and not f.startswith('.')]
@@ -156,8 +161,14 @@ def main():
             print(f"Error processing {filename}: {e}")
 
     print(f"\nDone! Successfully inserted {total_inserted} total rows into the database.")
+    conn.commit()
     cursor.close()
     conn.close()
+
+except Exception as e:
+    conn.rollback()
+    print(f"Error during import, rolling back: {e}")
+    raise
 
 if __name__ == '__main__':
     main()

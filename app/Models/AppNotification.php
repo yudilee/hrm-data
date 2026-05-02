@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -13,8 +15,8 @@ class AppNotification extends Model
     ];
 
     protected $casts = [
-        'data'       => 'array',
-        'read_at'    => 'datetime',
+        'data' => 'array',
+        'read_at' => 'datetime',
         'created_at' => 'datetime',
     ];
 
@@ -32,11 +34,11 @@ class AppNotification extends Model
 
         foreach ($adminIds as $userId) {
             static::create([
-                'user_id'    => $userId,
-                'type'       => $type,
-                'title'      => $title,
-                'body'       => $body,
-                'data'       => $data,
+                'user_id' => $userId,
+                'type' => $type,
+                'title' => $title,
+                'body' => $body,
+                'data' => $data,
                 'created_at' => now(),
             ]);
         }

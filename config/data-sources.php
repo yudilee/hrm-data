@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
 
     /*
@@ -13,8 +15,8 @@ return [
     |
     */
 
-    'customer_dir'  => env('IMPORT_CUSTOMER_DIR', '/home/yudi/dev/rts_code/data cust'),
-    'vehicle_dir'   => env('IMPORT_VEHICLE_DIR',  '/home/yudi/dev/rts_code/lvs'),
-    'supplier_dbf'  => env('IMPORT_SUPPLIER_DBF', '/home/yudi/dev/rts_code/supplier/supplier.DBF'),
+    'customer_dir' => env('IMPORT_CUSTOMER_DIR', storage_path('data/customers')),
+    'vehicle_dir' => env('IMPORT_VEHICLE_DIR', storage_path('data/vehicles')),
+    'supplier_dbf' => env('IMPORT_SUPPLIER_DBF', storage_path('data/supplier.DBF')),
 
 ];

@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\MasterVehicle;
+use App\Models\ServiceHistory;
 use Illuminate\Http\Request;
 
 class MasterVehicleController extends Controller
@@ -13,9 +16,9 @@ class MasterVehicleController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            
+
             // Historical plate search: find chassis numbers that used this plate
-            $historicalChassis = \App\Models\ServiceHistory::where('CNPOL', 'like', "%{$search}%")
+            $historicalChassis = ServiceHistory::where('CNPOL', 'like', "%{$search}%")
                 ->distinct()
                 ->pluck('CHASN')
                 ->filter()
@@ -23,12 +26,12 @@ class MasterVehicleController extends Controller
 
             $query->where(function ($q) use ($search, $historicalChassis) {
                 $q->where('registration_no', 'like', "%{$search}%")
-                  ->orWhere('chassis_no', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('engine_no', 'like', "%{$search}%")
-                  ->orWhere('mhl_number', 'like', "%{$search}%");
-                  
-                if (!empty($historicalChassis)) {
+                    ->orWhere('chassis_no', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('engine_no', 'like', "%{$search}%")
+                    ->orWhere('mhl_number', 'like', "%{$search}%");
+
+                if (! empty($historicalChassis)) {
                     $q->orWhereIn('chassis_no', $historicalChassis);
                 }
             });
@@ -52,17 +55,17 @@ class MasterVehicleController extends Controller
 
         $sortField = $request->get('sort', 'last_service_date');
         $sortDir = $request->get('dir', 'desc');
-        
+
         $allowedSorts = ['registration_no', 'description', 'chassis_no', 'true_franchise', 'last_service_date'];
-        if (!in_array($sortField, $allowedSorts)) {
+        if (! in_array($sortField, $allowedSorts)) {
             $sortField = 'last_service_date';
         }
-        if (!in_array($sortDir, ['asc', 'desc'])) {
+        if (! in_array($sortDir, ['asc', 'desc'])) {
             $sortDir = 'desc';
         }
 
         $perPage = $request->get('per_page', 20);
-        if (!in_array($perPage, [20, 50, 100, 200])) {
+        if (! in_array($perPage, [20, 50, 100, 200])) {
             $perPage = 20;
         }
 
@@ -75,13 +78,13 @@ class MasterVehicleController extends Controller
     {
         $vehicle = MasterVehicle::with(['customer'])->findOrFail($id);
 
-        $histories = \App\Models\ServiceHistory::with(['labours', 'parts'])
+        $histories = ServiceHistory::with(['labours', 'parts'])
             ->where(function ($q) use ($vehicle) {
                 $q->where('vehicle_id', $vehicle->id);
-                if (!empty($vehicle->chassis_no)) {
+                if (! empty($vehicle->chassis_no)) {
                     $q->orWhere('CHASN', $vehicle->chassis_no);
                 }
-                if (!empty($vehicle->registration_no)) {
+                if (! empty($vehicle->registration_no)) {
                     $q->orWhere('CNPOL', $vehicle->registration_no);
                 }
             })
@@ -96,6 +99,7 @@ class MasterVehicleController extends Controller
     public function show($id)
     {
         $vehicle = MasterVehicle::with('customer')->findOrFail($id);
+
         return response()->json($vehicle);
     }
 

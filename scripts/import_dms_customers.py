@@ -28,10 +28,14 @@ def validate_phone(phone):
 DB_HOST = os.environ.get('DB_HOST', '127.0.0.1')
 DB_PORT = os.environ.get('DB_PORT', '3306')
 DB_USER = os.environ.get('DB_USERNAME', 'sail')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', 'password')
-DB_NAME = os.environ.get('DB_DATABASE', 'rts_labour_app')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
+DB_NAME = os.environ.get('DB_DATABASE', 'master_data')
 
-SOURCE_DIR = "/home/yudi/dev/rts_code/data cust/"
+if not DB_PASSWORD:
+    print("Error: DB_PASSWORD environment variable is required.")
+    sys.exit(1)
+
+SOURCE_DIR = os.environ.get('IMPORT_CUSTOMER_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data cust'))
 
 def normalize_name(name):
     if pd.isna(name) or not str(name).strip():

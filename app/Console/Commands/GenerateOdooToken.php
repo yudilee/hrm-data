@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\User;
+use Illuminate\Console\Command;
 
 class GenerateOdooToken extends Command
 {
@@ -28,19 +30,20 @@ class GenerateOdooToken extends Command
     {
         $admin = User::where('role', 'admin')->first();
 
-        if (!$admin) {
+        if (! $admin) {
             $this->error('No admin user found. Please create an admin user first.');
+
             return Command::FAILURE;
         }
 
-        $tokenName = 'Odoo Sync Token - ' . now()->format('Y-m-d H:i');
+        $tokenName = 'Odoo Sync Token - '.now()->format('Y-m-d H:i');
         $token = $admin->createToken($tokenName);
 
         $this->info("Successfully generated new Odoo API Token for user: {$admin->name}");
-        $this->warn("Store this token securely. It will not be shown again!");
-        $this->line("");
+        $this->warn('Store this token securely. It will not be shown again!');
+        $this->line('');
         $this->info($token->plainTextToken);
-        $this->line("");
+        $this->line('');
 
         return Command::SUCCESS;
     }

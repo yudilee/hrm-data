@@ -1,59 +1,117 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Master Data Hub
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Centralized master data management for RTS automotive service/repair business.
 
-## About Laravel
+Consolidates customer, vehicle, supplier, service history, and labour code data from legacy systems (FoxPro DBF, Excel) into a single MySQL database, serving data via a web UI and REST APIs (for Odoo ERP integration).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **PHP 8.2+** / **Laravel 12**
+- **MySQL 8.4**
+- **Redis** (cache, queue, session)
+- **Tailwind CSS 4** / **Alpine.js 3** / **Vite 7**
+- **Python 3** (data import scripts)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Prerequisites
 
-## Learning Laravel
+- PHP 8.2+ with extensions: `bcmath`, `ctype`, `curl`, `dom`, `fileinfo`, `mbstring`, `pdo`, `pdo_mysql`, `tokenizer`, `xml`
+- Composer 2
+- Node.js 18+ & npm
+- Docker & Docker Compose (for Sail dev environment)
+- MySQL 8.4+ (or use Sail's built-in)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Quick Start (with Laravel Sail)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+cd rts-labour-app
 
-## Laravel Sponsors
+# Install dependencies
+composer install
+npm install
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Configure environment
+cp .env.example .env
+# Edit .env — set IMPORT_CUSTOMER_DIR, IMPORT_VEHICLE_DIR, IMPORT_SUPPLIER_DBF
 
-### Premium Partners
+# Start containers
+./vendor/bin/sail up -d
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# Run migrations
+./vendor/bin/sail artisan migrate
 
-## Contributing
+# Build frontend
+./vendor/bin/sail npm run build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Visit `http://localhost` (or `APP_PORT` from `.env`).
 
-## Code of Conduct
+## Architecture
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Data Import Pipeline
 
-## Security Vulnerabilities
+```
+Source Files (Excel / DBF)
+    │
+    ├── data cust/*.xls    →  Python/Artisan  →  master_customers
+    ├── lvs/*.xls          →  Python/Artisan  →  master_vehicles
+    ├── supplier/*.DBF     →  Python script    →  master_suppliers
+    ├── vehicle history/*  →  Python script    →  service_histories
+    └── Data Operation/*   →  Python script    →  labour_codes
+    │
+    ▼
+  MySQL (master_data)
+    │
+    ├── Web UI (Blade)     →  Browse/search master data
+    ├── API v2 (REST)      →  Odoo ERP integration
+    └── Excel Exports      →  Download reports
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### API Documentation
+
+API documentation is auto-generated by [Scramble](https://scramble.dedoc.co/) at `/docs/api` when enabled.
+
+### Key Commands
+
+| Command | Purpose |
+|---------|---------|
+| `artisan import:dms-customers` | Import customers via DMS pipeline |
+| `artisan import:master-vehicles` | Import LVS vehicle data |
+| `artisan import:service-history` | Import service history from DBF |
+| `artisan import:labour-codes` | Import labour codes from Excel |
+| `artisan rts:import-all` | Full master smart sync |
+| `artisan backup:database` | Create database backup |
+| `artisan security:check-activity` | Check suspicious activity |
+
+### Directory Map
+
+```
+rts-labour-app/          # Laravel application
+├── app/Models/          # Eloquent models (19)
+├── app/Services/        # Business logic services
+├── app/Jobs/            # Queue jobs for background imports
+├── app/Http/Controllers/ # Web & API controllers
+├── app/Http/Middleware/  # Auth, logging, IP allowlist
+├── routes/              # web.php, api.php, console.php
+├── scripts/             # Python import scripts
+├── database/            # Migrations, factories, seeders
+└── tests/               # PHPUnit tests
+```
+
+### Environments
+
+- **local**: Development with Sail/Docker
+- **testing**: Used by PHPUnit (SQLite in-memory by default)
+- **production**: Set `APP_ENV=production`, `APP_DEBUG=false`, run `artisan optimize`
+
+## Security
+
+- API v2 uses Sanctum token authentication with ability-based scoping
+- Tokens support IP allowlisting and expiration
+- API access is logged and rate-limited (300/min admin, 60/min user)
+- Login brute-force protection: 10 failures in 15 minutes triggers lockout
+- Sensitive configuration stored encrypted (Odoo credentials)
+- Database backup credentials never exposed in process listings
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT

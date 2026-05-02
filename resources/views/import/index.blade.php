@@ -3,35 +3,43 @@
 @section('title', 'Data Import Center - Dealership MasterData Hub')
 
 @section('breadcrumb')
-    <li class="inline-flex items-center">
-        <svg class="w-3 h-3 text-gray-400 mx-1" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-        </svg>
-        <span class="text-sm font-medium text-gray-500">Import Center</span>
-    </li>
+    <x-ui.breadcrumb :items="[['label' => 'Import Center']]" />
 @endsection
 
 @section('content')
 <div class="max-w-5xl mx-auto px-2 py-6" x-data="importHistory()" x-init="fetchStatus()">
 
     {{-- Page Header --}}
-    <div class="mb-10">
-        <h1 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Data Import Center</h1>
-        <p class="mt-2 text-gray-500 dark:text-slate-400">All data is read from the server folders automatically. No file upload needed.</p>
+    <div class="mb-8">
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Data Import Center</h1>
+                <p class="mt-2 text-gray-500 dark:text-slate-400">All data is read from the server folders automatically. No file upload needed.</p>
+            </div>
+        </div>
     </div>
 
-    {{-- Alerts --}}
+    {{-- Help Panel --}}
+    <x-ui.help-panel>
+        <x-slot name="trigger"><span label="How does importing work?"></span></x-slot>
+        <p class="mb-2"><strong>Import Pipeline Overview</strong></p>
+        <ul class="list-disc pl-5 space-y-1 text-xs">
+            <li><strong>DMS Customers</strong> — Reads from <code class="bg-indigo-100 dark:bg-indigo-800 px-1 rounded">data cust/*.xls</code> with advanced deduplication logic via Python pipeline.</li>
+            <li><strong>H04 Customers</strong> — Imports all branch H04 Excel files, auto-detecting the source branch from the filename.</li>
+            <li><strong>LVS Vehicles</strong> — Merges vehicle data from <code class="bg-indigo-100 dark:bg-indigo-800 px-1 rounded">lvs/*.xls</code> files, matching to existing customers.</li>
+            <li><strong>Service History</strong> — Syncs service records from FoxPro DBF files in the <code class="bg-indigo-100 dark:bg-indigo-800 px-1 rounded">vehicle history/</code> directory.</li>
+            <li><strong>Suppliers</strong> — Syncs from the single <code class="bg-indigo-100 dark:bg-indigo-800 px-1 rounded">supplier.DBF</code> file using upsert (insert or update).</li>
+            <li class="mt-1"><strong>Smart Sync</strong> — Runs the full intelligence pipeline: Recover Ghosts → LVS Import → Backfill Names → Merge Duplicates. Fixes missing names and consolidates duplicate records in one click.</li>
+        </ul>
+        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Source paths are configured in <code>.env</code> variables: <code>IMPORT_CUSTOMER_DIR</code>, <code>IMPORT_VEHICLE_DIR</code>, <code>IMPORT_SUPPLIER_DBF</code>.</p>
+    </x-ui.help-panel>
+
+    {{-- Alerts (also show as toasts) --}}
     @if(session('success'))
-        <div class="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-2xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-            <span class="font-semibold text-sm">{{ session('success') }}</span>
-        </div>
+        <div id="flash-success" data-message="{{ session('success') }}" class="hidden"></div>
     @endif
     @if(session('error'))
-        <div class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 rounded-2xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-            <span class="font-semibold text-sm">{{ session('error') }}</span>
-        </div>
+        <div id="flash-error" data-message="{{ session('error') }}" class="hidden"></div>
     @endif
 
     <div class="mb-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\MasterCustomer;
@@ -11,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 class MergeDuplicatesCommand extends Command
 {
     protected $signature = 'rts:merge-duplicates {--dry-run : Only show what would be merged}';
+
     protected $description = 'Find and merge customer records with the same normalized name and city.';
 
     public function handle()
@@ -35,9 +38,9 @@ class MergeDuplicatesCommand extends Command
         foreach ($duplicates as $group) {
             $customers = MasterCustomer::withCount('vehicles')
                 ->where('normalized_name', $group->normalized_name)
-                ->where(function($q) use ($group) {
+                ->where(function ($q) use ($group) {
                     $q->where('address_3', $group->city)
-                      ->orWhere('address_5', $group->city);
+                        ->orWhere('address_5', $group->city);
                 })
                 ->orderBy('vehicles_count', 'desc') // Keep the one with most vehicles as primary
                 ->orderBy('id', 'asc')
@@ -45,14 +48,16 @@ class MergeDuplicatesCommand extends Command
 
             if ($customers->count() <= 1) {
                 $bar->advance();
+
                 continue;
             }
 
             $primary = $customers->shift(); // First one is primary
-            
+
             foreach ($customers as $secondary) {
                 if ($this->option('dry-run')) {
                     $this->info("Would merge {$secondary->name} (ID: {$secondary->id}) into {$primary->name} (ID: {$primary->id})");
+
                     continue;
                 }
 
@@ -68,7 +73,7 @@ class MergeDuplicatesCommand extends Command
                 $primaryMappings = $primary->legacy_mappings ?? [];
                 $secondaryMappings = $secondary->legacy_mappings ?? [];
                 foreach ($secondaryMappings as $m) {
-                    if (!$this->hasMapping($primaryMappings, $m)) {
+                    if (! $this->hasMapping($primaryMappings, $m)) {
                         $primaryMappings[] = $m;
                     }
                 }
@@ -78,10 +83,14 @@ class MergeDuplicatesCommand extends Command
                 $secondaryPhones = array_filter([$secondary->telp_1, $secondary->telp_2, $secondary->telp_3, $secondary->telp_4]);
                 foreach ($secondaryPhones as $phone) {
                     $primaryPhones = [$primary->telp_1, $primary->telp_2, $primary->telp_3, $primary->telp_4];
-                    if (!in_array($phone, array_filter($primaryPhones))) {
-                        if (!$primary->telp_2) $primary->telp_2 = $phone;
-                        elseif (!$primary->telp_3) $primary->telp_3 = $phone;
-                        elseif (!$primary->telp_4) $primary->telp_4 = $phone;
+                    if (! in_array($phone, array_filter($primaryPhones))) {
+                        if (! $primary->telp_2) {
+                            $primary->telp_2 = $phone;
+                        } elseif (! $primary->telp_3) {
+                            $primary->telp_3 = $phone;
+                        } elseif (! $primary->telp_4) {
+                            $primary->telp_4 = $phone;
+                        }
                     }
                 }
 
@@ -104,6 +113,7 @@ class MergeDuplicatesCommand extends Command
                 return true;
             }
         }
+
         return false;
     }
 }

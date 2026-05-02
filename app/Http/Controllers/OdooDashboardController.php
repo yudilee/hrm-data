@@ -1,10 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use App\Models\MasterCustomer;
-use App\Models\MasterVehicle;
-use App\Models\ServiceHistory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -24,16 +23,16 @@ class OdooDashboardController extends Controller
                     ->first();
 
                 return [
-                    'total'   => (int) ($row->total   ?? 0),
-                    'synced'  => (int) ($row->synced  ?? 0),
-                    'pending' => (int) ($row->pending  ?? 0),
-                    'failed'  => (int) ($row->failed  ?? 0),
+                    'total' => (int) ($row->total ?? 0),
+                    'synced' => (int) ($row->synced ?? 0),
+                    'pending' => (int) ($row->pending ?? 0),
+                    'failed' => (int) ($row->failed ?? 0),
                 ];
             };
 
             return [
-                'customers'       => $buildStats('master_customers'),
-                'vehicles'        => $buildStats('master_vehicles'),
+                'customers' => $buildStats('master_customers'),
+                'vehicles' => $buildStats('master_vehicles'),
                 'service_history' => $buildStats('service_histories'),
             ];
         });

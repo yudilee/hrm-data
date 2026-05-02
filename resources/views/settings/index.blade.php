@@ -3,21 +3,18 @@
 @section('title', 'Application Settings')
 @section('subtitle', 'Configure application behavior')
 
+@section('breadcrumb')
+    <x-ui.breadcrumb :items="[['label' => 'Settings']]" />
+@endsection
+
 @section('content')
 <div class="max-w-2xl space-y-6">
 
     @if(session('success'))
-        <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-            {{ session('success') }}
-        </div>
+        <div id="flash-success" data-message="{{ session('success') }}" class="hidden"></div>
     @endif
-
     @if(session('error'))
-        <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
-            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-            {{ session('error') }}
-        </div>
+        <div id="flash-error" data-message="{{ session('error') }}" class="hidden"></div>
     @endif
 
     {{-- ═══ LABOUR CODES REBUILD ═══ --}}
@@ -116,16 +113,22 @@
                 <p class="text-sm text-red-800 dark:text-red-300 font-medium">Clear All Local Data</p>
                 <p class="text-xs text-red-600 dark:text-red-400/80 mt-1">This will permanently delete all local journal entries and lines. This action cannot be undone.</p>
 
-                <form action="{{ route('settings.empty-database') }}" method="POST" class="mt-4"
-                      x-data="{ confirming: false }"
-                      @submit.prevent="if(confirming) { $el.submit() } else { confirming = true; setTimeout(() => confirming = false, 5000); }">
-                    @csrf
-                    <button type="submit"
-                        :class="confirming ? 'bg-red-700 ring-2 ring-red-400 ring-offset-1 animate-pulse' : 'bg-red-600'"
-                        class="px-4 py-2 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-all">
-                        <span x-text="confirming ? '⚠ Click again to confirm — this is irreversible!' : 'Empty Database Now'"></span>
-                    </button>
-                </form>
+                <div class="mt-4">
+                    <x-ui.confirm-modal
+                        title="Empty Database"
+                        message="Are you sure you want to permanently delete all journal entries and lines? This action cannot be undone."
+                        confirmText="Yes, Empty Database"
+                        formAction="{{ route('settings.empty-database') }}"
+                        formMethod="POST"
+                    >
+                        <x-slot name="trigger">
+                            <span class="inline-block px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer">Empty Database Now</span>
+                        </x-slot>
+                        <x-slot name="formFields">
+                            <input type="hidden" name="confirm" value="yes">
+                        </x-slot>
+                    </x-ui.confirm-modal>
+                </div>
             </div>
         </div>
 

@@ -3,17 +3,29 @@
 @section('title', 'Dashboard - Dealership MasterData Hub Data System')
 
 @section('breadcrumb')
-<li class="inline-flex items-center">
-    <svg class="w-3 h-3 text-gray-400 mx-1" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-    </svg>
-    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Dashboard</span>
-</li>
+    <x-ui.breadcrumb :items="[['label' => 'Dashboard']]" />
 @endsection
 
 @section('content')
 <div class="space-y-8" x-data="labourSearch()">
-    <!-- Welcome Header -->
+    {{-- Onboarding Banner (new users) --}}
+    @if(is_null(\App\Models\Setting::get('onboarding_dismissed')))
+    <x-ui.onboarding-banner title="Welcome to Master Data Hub" @open="true">
+        <p>This is your central hub for managing automotive master data. Here's a quick guide to get started:</p>
+        <ul class="list-disc pl-5 mt-1 space-y-0.5 text-white/70">
+            <li><strong>Service History</strong> — Look up past service records by registration or chassis number.</li>
+            <li><strong>Labour Code Search</strong> — Find exact labour operations and estimated hours by VIN prefix.</li>
+            <li><strong>Master Vehicles & Customers</strong> — Browse and search your full vehicle/customer databases.</li>
+            <li><strong>API Tokens</strong> — Generate tokens for Odoo ERP integration under "My API Tokens".</li>
+        </ul>
+        <x-slot name="actions">
+            <a href="{{ route('service-history.index') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition-colors">Service History</a>
+            <a href="{{ route('labour-search') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition-colors">Labour Search</a>
+            <a href="{{ route('master-vehicles.index') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition-colors">Master Vehicles</a>
+            <a href="{{ route('user.api-tokens.index') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition-colors">API Tokens</a>
+        </x-slot>
+    </x-ui.onboarding-banner>
+    @endif
     <div class="relative overflow-hidden rounded-2xl bg-indigo-600 p-8 text-white shadow-xl shadow-indigo-200">
         <div class="relative z-10">
             <h1 class="text-3xl font-bold tracking-tight">Welcome back!</h1>

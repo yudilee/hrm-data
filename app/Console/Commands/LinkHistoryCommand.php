@@ -1,14 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
+use App\Models\MasterCustomer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use App\Models\MasterCustomer;
 
 class LinkHistoryCommand extends Command
 {
     protected $signature = 'rts:link-history';
+
     protected $description = 'Link service history records to global vehicle and customer records';
 
     public function handle()
@@ -16,8 +19,8 @@ class LinkHistoryCommand extends Command
         $this->info('Starting Service History Linking...');
         $startTime = microtime(true);
 
-        $vehicleLinked   = $this->linkVehicles();
-        $customerLinked  = $this->linkCustomers();
+        $vehicleLinked = $this->linkVehicles();
+        $customerLinked = $this->linkCustomers();
 
         $elapsed = round(microtime(true) - $startTime, 1);
 
@@ -34,6 +37,7 @@ class LinkHistoryCommand extends Command
         );
 
         $this->info("Linking completed in {$elapsed}s.");
+
         return Command::SUCCESS;
     }
 
@@ -49,6 +53,7 @@ class LinkHistoryCommand extends Command
 
         if ($unlinked === 0) {
             $this->info('✅ All vehicles already linked.');
+
             return 0;
         }
 
@@ -61,6 +66,7 @@ class LinkHistoryCommand extends Command
         ");
 
         $this->info("  ✓ Linked {$affected} histories to vehicles.");
+
         return $affected;
     }
 
@@ -83,6 +89,7 @@ class LinkHistoryCommand extends Command
 
         if ($totalPairs === 0) {
             $this->info('✅ All customers already linked.');
+
             return 0;
         }
 
@@ -99,37 +106,37 @@ class LinkHistoryCommand extends Command
                     : json_decode($customer->legacy_mappings, true) ?? [];
                 foreach ($mappings as $m) {
                     if (isset($m['branch'], $m['magic'])) {
-                        $key = $m['branch'] . '|' . $m['magic'];
+                        $key = $m['branch'].'|'.$m['magic'];
                         $lookupMap[$key] = $customer->id;
                     }
                 }
             });
 
-        $this->info("  Lookup map has " . count($lookupMap) . " entries. Resolving and linking...");
+        $this->info('  Lookup map has '.count($lookupMap).' entries. Resolving and linking...');
 
         // 3. Resolve each pair using the map, then batch-update
         $totalLinked = 0;
-        $unresolved  = 0;
-        $bar         = $this->output->createProgressBar($totalPairs);
+        $unresolved = 0;
+        $bar = $this->output->createProgressBar($totalPairs);
         $bar->start();
 
         // Group pairs by resolved customer_id for batch updating
         $updates = []; // customer_id => [[source, ccust], ...]
 
         foreach ($unlinkedPairs as $pair) {
-            $source      = $pair->source;
-            $rawCust     = trim($pair->CCUST);
-            
+            $source = $pair->source;
+            $rawCust = trim($pair->CCUST);
+
             // Fix: Only treat it as numeric magic if it's purely digits (or has leading zeros)
             // Do NOT strip letters, e.g. B0000011 should NOT become 11.
             $numericMagic = ctype_digit($rawCust) ? (int) $rawCust : 0;
 
             // Strategy A: exact raw string match
-            $customerId = $lookupMap[$source . '|' . $rawCust] ?? null;
+            $customerId = $lookupMap[$source.'|'.$rawCust] ?? null;
 
             // Strategy B: numeric magic match
             if ($customerId === null && $numericMagic > 0) {
-                $customerId = $lookupMap[$source . '|' . $numericMagic] ?? null;
+                $customerId = $lookupMap[$source.'|'.$numericMagic] ?? null;
             }
 
             if ($customerId !== null) {
@@ -156,6 +163,7 @@ class LinkHistoryCommand extends Command
         }
 
         $this->info("  ✓ Linked {$totalLinked} histories to customers. ({$unresolved} pairs unresolvable — run rts:recover-ghosts)");
+
         return $totalLinked;
     }
 }

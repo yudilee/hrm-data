@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -60,9 +62,9 @@ return [
 
         'single' => [
             'driver' => 'daily',
-            'path'   => storage_path('logs/laravel.log'),
-            'level'  => env('LOG_LEVEL', 'debug'),
-            'days'   => env('LOG_DAILY_DAYS', 30),
+            'path' => storage_path('logs/laravel.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 30),
             'replace_placeholders' => true,
         ],
 
@@ -70,28 +72,27 @@ return [
 
         'api' => [
             'driver' => 'daily',
-            'path'   => storage_path('logs/api.log'),
-            'level'  => 'info',
-            'days'   => 90,
+            'path' => storage_path('logs/api.log'),
+            'level' => 'info',
+            'days' => 90,
             'replace_placeholders' => true,
         ],
 
         'security' => [
             'driver' => 'daily',
-            'path'   => storage_path('logs/security.log'),
-            'level'  => 'warning',
-            'days'   => 365,
+            'path' => storage_path('logs/security.log'),
+            'level' => 'warning',
+            'days' => 365,
             'replace_placeholders' => true,
         ],
 
         'import' => [
             'driver' => 'daily',
-            'path'   => storage_path('logs/import.log'),
-            'level'  => 'info',
-            'days'   => 30,
+            'path' => storage_path('logs/import.log'),
+            'level' => 'info',
+            'days' => 30,
             'replace_placeholders' => true,
         ],
-
 
         'daily' => [
             'driver' => 'daily',

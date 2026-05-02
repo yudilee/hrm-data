@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
 
 class ApiAccessLog extends Model
 {
@@ -19,7 +20,7 @@ class ApiAccessLog extends Model
 
     protected $casts = [
         'query_params' => 'array',
-        'created_at'   => 'datetime',
+        'created_at' => 'datetime',
     ];
 
     // ─── Scopes ───────────────────────────────────────────────────────────────
@@ -56,19 +57,19 @@ class ApiAccessLog extends Model
      */
     public static function archiveOld(): array
     {
-        $cutoff  = now()->subDays(90);
-        $rows    = static::where('created_at', '<', $cutoff)->count();
+        $cutoff = now()->subDays(90);
+        $rows = static::where('created_at', '<', $cutoff)->count();
 
         if ($rows === 0) {
             return ['archived' => 0, 'deleted' => 0];
         }
 
         $archiveDir = storage_path('logs/archive');
-        if (!is_dir($archiveDir)) {
+        if (! is_dir($archiveDir)) {
             mkdir($archiveDir, 0755, true);
         }
 
-        $filename = $archiveDir . '/api_access_' . now()->format('Y-m') . '.csv.gz';
+        $filename = $archiveDir.'/api_access_'.now()->format('Y-m').'.csv.gz';
         $gz = gzopen($filename, 'ab9');
 
         $first = true;
@@ -77,13 +78,13 @@ class ApiAccessLog extends Model
             ->chunk(1000, function ($chunk) use ($gz, &$first) {
                 foreach ($chunk as $row) {
                     if ($first) {
-                        gzwrite($gz, implode(',', array_keys($row->toArray())) . "\n");
+                        gzwrite($gz, implode(',', array_keys($row->toArray()))."\n");
                         $first = false;
                     }
                     gzwrite($gz, implode(',', array_map(
-                        fn($v) => is_array($v) ? json_encode($v) : (string) $v,
+                        fn ($v) => is_array($v) ? json_encode($v) : (string) $v,
                         $row->toArray()
-                    )) . "\n");
+                    ))."\n");
                 }
             });
 

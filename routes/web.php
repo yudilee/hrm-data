@@ -1,19 +1,31 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\MasterVehicleController;
-use App\Http\Controllers\MasterCustomerController;
-use App\Http\Controllers\ImportController;
-use App\Http\Controllers\ServiceHistoryController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\SettingController;
+declare(strict_types=1);
 
-use App\Http\Controllers\OdooDashboardController;
-use App\Http\Controllers\MasterSupplierController;
-use App\Http\Controllers\OdooExportController;
+use App\Http\Controllers\Admin\ApiAccessLogController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BackupController;
+use App\Http\Controllers\Admin\LoginAttemptController;
+use App\Http\Controllers\Admin\LogViewerController;
+use App\Http\Controllers\Admin\SessionController;
+use App\Http\Controllers\Admin\TokenRequestController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\LabourCodeController;
+use App\Http\Controllers\MasterCustomerController;
+use App\Http\Controllers\MasterSupplierController;
+use App\Http\Controllers\MasterVehicleController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OdooDashboardController;
+use App\Http\Controllers\OdooExportController;
+use App\Http\Controllers\ServiceHistoryController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\User\ApiTokenController;
+use App\Http\Controllers\Odoo\LabourSelectController;
+use Illuminate\Support\Facades\Route;
 
 // ──────────────────────────────────────────────
 // Guest Routes
@@ -33,7 +45,7 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard
     Route::get('/', [OdooDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/api/global-search', [\App\Http\Controllers\GlobalSearchController::class, 'search'])->name('global-search');
+    Route::get('/api/global-search', [GlobalSearchController::class, 'search'])->name('global-search');
 
     Route::get('/master-vehicles', [MasterVehicleController::class, 'index'])->name('master-vehicles.index');
     Route::get('/master-vehicles/{id}', [MasterVehicleController::class, 'showWeb'])->name('master-vehicles.show');
@@ -42,7 +54,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/master-suppliers', [MasterSupplierController::class, 'index'])->name('master-suppliers.index');
     Route::get('/master-suppliers/{id}', [MasterSupplierController::class, 'show'])->name('master-suppliers.show');
 
-
     // Service History (FoxPro DBF Replica)
     Route::get('/service-history', [ServiceHistoryController::class, 'index'])->name('service-history.index');
     Route::get('/api/service-history/search', [ServiceHistoryController::class, 'search'])->name('service-history.search');
@@ -50,33 +61,37 @@ Route::middleware('auth')->group(function () {
     Route::get('/web-api/labour-codes', [LabourCodeController::class, 'search'])->name('labour-codes.search');
 
     // Labour Search
-    Route::get('/labour-search', function () {
-        return view('labour-search');
-    })->name('labour-search');
+    Route::get('/labour-search', [LabourCodeController::class, 'searchPage'])->name('labour-search');
 
-
-    // Excel Exports (available to all authenticated users)
-    Route::get('/export/customers', [ExportController::class, 'customers'])->name('export.customers');
-    Route::get('/export/vehicles', [ExportController::class, 'vehicles'])->name('export.vehicles');
-    Route::get('/export/suppliers', [ExportController::class, 'suppliers'])->name('export.suppliers');
-    Route::get('/export/odoo-customers', [ExportController::class, 'odooCustomers'])->name('export.odoo-customers');
-    Route::get('/export/odoo-suppliers', [ExportController::class, 'odooSuppliers'])->name('export.odoo-suppliers');
+    // User API Tokens (Self-Service)
+    Route::prefix('user')->name('user.')->group(function () {
+        Route::get('api-tokens', [ApiTokenController::class, 'index'])->name('api-tokens.index');
+        Route::post('api-tokens', [ApiTokenController::class, 'store'])->name('api-tokens.store');
+        Route::delete('api-tokens/{tokenId}', [ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
+    });
 
     // ──────────────────────────────────────────
     // Admin/Manager Routes (requires admin role)
     // ──────────────────────────────────────────
     Route::middleware('role:admin')->group(function () {
+        // Excel Exports (admin only)
+        Route::get('/export/customers', [ExportController::class, 'customers'])->name('export.customers');
+        Route::get('/export/vehicles', [ExportController::class, 'vehicles'])->name('export.vehicles');
+        Route::get('/export/suppliers', [ExportController::class, 'suppliers'])->name('export.suppliers');
+        Route::get('/export/odoo-customers', [ExportController::class, 'odooCustomers'])->name('export.odoo-customers');
+        Route::get('/export/odoo-suppliers', [ExportController::class, 'odooSuppliers'])->name('export.odoo-suppliers');
+
         // Import – all read from server folders, no file upload
-        Route::get('/import',                   [ImportController::class, 'index'])->name('import.index');
-        Route::post('/import/customers',        [ImportController::class, 'importCustomers'])->name('import.customers');
-        Route::post('/import/dms-customers',    [ImportController::class, 'importDmsCustomers'])->name('import.dms-customers');
-        Route::post('/import/lvs-vehicles',     [ImportController::class, 'importLvsVehicles'])->name('import.lvs-vehicles');
-        Route::post('/import/suppliers',        [ImportController::class, 'importSuppliers'])->name('import.suppliers');
-        Route::post('/import/history',          [ImportController::class, 'importHistory'])->name('import.history');
-        Route::post('/import/labour-codes',     [ImportController::class, 'importLabourCodes'])->name('import.labour-codes');
-        Route::post('/import/smart-sync',       [ImportController::class, 'smartSync'])->name('import.smart-sync');
-        Route::get('/import/log',               [ImportController::class, 'getImportLog'])->name('import.log');
-        Route::get('/import/status',            [ImportController::class, 'getImportStatus'])->name('import.status');
+        Route::get('/import', [ImportController::class, 'index'])->name('import.index');
+        Route::post('/import/customers', [ImportController::class, 'importCustomers'])->name('import.customers');
+        Route::post('/import/dms-customers', [ImportController::class, 'importDmsCustomers'])->name('import.dms-customers');
+        Route::post('/import/lvs-vehicles', [ImportController::class, 'importLvsVehicles'])->name('import.lvs-vehicles');
+        Route::post('/import/suppliers', [ImportController::class, 'importSuppliers'])->name('import.suppliers');
+        Route::post('/import/history', [ImportController::class, 'importHistory'])->name('import.history');
+        Route::post('/import/labour-codes', [ImportController::class, 'importLabourCodes'])->name('import.labour-codes');
+        Route::post('/import/smart-sync', [ImportController::class, 'smartSync'])->name('import.smart-sync');
+        Route::get('/import/log', [ImportController::class, 'getImportLog'])->name('import.log');
+        Route::get('/import/status', [ImportController::class, 'getImportStatus'])->name('import.status');
 
         // Odoo Export – admin only
         Route::get('/odoo-export', [OdooExportController::class, 'index'])->name('odoo-export.index');
@@ -93,54 +108,54 @@ Route::middleware('auth')->group(function () {
         // Admin Prefix
         Route::prefix('admin')->name('admin.')->group(function () {
             // User Management
-            Route::get('users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
-            Route::get('users/create', [\App\Http\Controllers\Admin\UserController::class, 'create'])->name('users.create');
-            Route::post('users', [\App\Http\Controllers\Admin\UserController::class, 'store'])->name('users.store');
-            Route::get('users/{user}/edit', [\App\Http\Controllers\Admin\UserController::class, 'edit'])->name('users.edit');
-            Route::put('users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('users.update');
-            Route::delete('users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('users.destroy');
+            Route::get('users', [UserController::class, 'index'])->name('users.index');
+            Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+            Route::post('users', [UserController::class, 'store'])->name('users.store');
+            Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+            Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+            Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
             // Database Backups
-            Route::get('backups', [\App\Http\Controllers\Admin\BackupController::class, 'index'])->name('backups.index');
-            Route::post('backups', [\App\Http\Controllers\Admin\BackupController::class, 'create'])->name('backups.create');
-            Route::get('backups/{filename}/download', [\App\Http\Controllers\Admin\BackupController::class, 'download'])->name('backups.download');
-            Route::post('backups/{filename}/restore', [\App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('backups.restore');
-            Route::post('backups/restore-file', [\App\Http\Controllers\Admin\BackupController::class, 'restoreFromFile'])->name('backups.restore-file');
-            Route::delete('backups/{filename}', [\App\Http\Controllers\Admin\BackupController::class, 'delete'])->name('backups.destroy');
-            Route::post('backups/schedule', [\App\Http\Controllers\Admin\BackupController::class, 'updateSchedule'])->name('backups.schedule');
-            Route::post('backups/delete-batch', [\App\Http\Controllers\Admin\BackupController::class, 'deleteBatch'])->name('backups.delete-batch');
-            Route::post('backups/prune', [\App\Http\Controllers\Admin\BackupController::class, 'prune'])->name('backups.prune');
+            Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
+            Route::post('backups', [BackupController::class, 'create'])->name('backups.create');
+            Route::get('backups/{filename}/download', [BackupController::class, 'download'])->name('backups.download');
+            Route::post('backups/{filename}/restore', [BackupController::class, 'restore'])->name('backups.restore');
+            Route::post('backups/restore-file', [BackupController::class, 'restoreFromFile'])->name('backups.restore-file');
+            Route::delete('backups/{filename}', [BackupController::class, 'delete'])->name('backups.destroy');
+            Route::post('backups/schedule', [BackupController::class, 'updateSchedule'])->name('backups.schedule');
+            Route::post('backups/delete-batch', [BackupController::class, 'deleteBatch'])->name('backups.delete-batch');
+            Route::post('backups/prune', [BackupController::class, 'prune'])->name('backups.prune');
 
             // Session Manager
-            Route::get('sessions', [\App\Http\Controllers\Admin\SessionController::class, 'index'])->name('sessions.index');
-            Route::post('sessions/settings', [\App\Http\Controllers\Admin\SessionController::class, 'updateSettings'])->name('sessions.settings');
-            Route::post('sessions/cleanup', [\App\Http\Controllers\Admin\SessionController::class, 'cleanup'])->name('sessions.cleanup');
-            Route::delete('sessions/{session}', [\App\Http\Controllers\Admin\SessionController::class, 'terminate'])->name('sessions.terminate');
+            Route::get('sessions', [SessionController::class, 'index'])->name('sessions.index');
+            Route::post('sessions/settings', [SessionController::class, 'updateSettings'])->name('sessions.settings');
+            Route::post('sessions/cleanup', [SessionController::class, 'cleanup'])->name('sessions.cleanup');
+            Route::delete('sessions/{session}', [SessionController::class, 'terminate'])->name('sessions.terminate');
 
             // API Token Management
-            Route::get('api-tokens', [\App\Http\Controllers\Admin\ApiTokenController::class, 'index'])->name('api-tokens.index');
-            Route::post('api-tokens', [\App\Http\Controllers\Admin\ApiTokenController::class, 'store'])->name('api-tokens.store');
-            Route::delete('api-tokens/{tokenId}', [\App\Http\Controllers\Admin\ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
+            Route::get('api-tokens', [App\Http\Controllers\Admin\ApiTokenController::class, 'index'])->name('api-tokens.index');
+            Route::post('api-tokens', [App\Http\Controllers\Admin\ApiTokenController::class, 'store'])->name('api-tokens.store');
+            Route::delete('api-tokens/{tokenId}', [App\Http\Controllers\Admin\ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
 
             // API Access Logs
-            Route::get('api-logs', [\App\Http\Controllers\Admin\ApiAccessLogController::class, 'index'])->name('api-logs.index');
-            Route::get('api-logs/stats', [\App\Http\Controllers\Admin\ApiAccessLogController::class, 'stats'])->name('api-logs.stats');
+            Route::get('api-logs', [ApiAccessLogController::class, 'index'])->name('api-logs.index');
+            Route::get('api-logs/stats', [ApiAccessLogController::class, 'stats'])->name('api-logs.stats');
 
             // Audit Trail
-            Route::get('audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
-            Route::get('audit-logs/{id}', [\App\Http\Controllers\Admin\AuditLogController::class, 'show'])->name('audit-logs.show');
+            Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+            Route::get('audit-logs/{id}', [AuditLogController::class, 'show'])->name('audit-logs.show');
 
             // Login Attempts
-            Route::get('login-attempts', [\App\Http\Controllers\Admin\LoginAttemptController::class, 'index'])->name('login-attempts.index');
+            Route::get('login-attempts', [LoginAttemptController::class, 'index'])->name('login-attempts.index');
 
             // Log Viewer
-            Route::get('log-viewer', [\App\Http\Controllers\Admin\LogViewerController::class, 'index'])->name('log-viewer.index');
-            Route::get('log-viewer/{channel}', [\App\Http\Controllers\Admin\LogViewerController::class, 'show'])->name('log-viewer.show');
+            Route::get('log-viewer', [LogViewerController::class, 'index'])->name('log-viewer.index');
+            Route::get('log-viewer/{channel}', [LogViewerController::class, 'show'])->name('log-viewer.show');
 
             // Token Requests (admin approve/reject)
-            Route::get('token-requests', [\App\Http\Controllers\Admin\TokenRequestController::class, 'index'])->name('token-requests.index');
-            Route::post('token-requests/{tokenRequest}/approve', [\App\Http\Controllers\Admin\TokenRequestController::class, 'approve'])->name('token-requests.approve');
-            Route::post('token-requests/{tokenRequest}/reject', [\App\Http\Controllers\Admin\TokenRequestController::class, 'reject'])->name('token-requests.reject');
+            Route::get('token-requests', [TokenRequestController::class, 'index'])->name('token-requests.index');
+            Route::post('token-requests/{tokenRequest}/approve', [TokenRequestController::class, 'approve'])->name('token-requests.approve');
+            Route::post('token-requests/{tokenRequest}/reject', [TokenRequestController::class, 'reject'])->name('token-requests.reject');
 
             // Odoo Settings (JSON API-style, admin only)
             Route::post('settings/odoo/config', [SettingController::class, 'saveOdooConfig'])->name('settings.odoo.config');
@@ -151,24 +166,19 @@ Route::middleware('auth')->group(function () {
 });
 
 // ── Public API Token Request Form ───────────────────────────────────────────
-Route::get('/request-api-access', function () {
-    $abilities = \App\Http\Controllers\Admin\ApiTokenController::ABILITIES;
-    return view('api-request', compact('abilities'));
-})->name('api-request.form');
+Route::get('/request-api-access', [App\Http\Controllers\Api\TokenRequestController::class, 'showForm'])
+    ->name('api-request.form');
 
 // ── In-app notification endpoints (authenticated) ──────────────────────────
 Route::middleware(['auth'])->group(function () {
-    Route::get('/notifications', function () {
-        return response()->json(
-            \App\Models\AppNotification::where('user_id', auth()->id())
-                ->latest('created_at')->take(10)->get()
-        );
-    })->name('notifications.index');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+});
 
-    Route::post('/notifications/read-all', function () {
-        \App\Models\AppNotification::where('user_id', auth()->id())
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
-        return response()->json(['ok' => true]);
-    })->name('notifications.read-all');
+// ── Odoo Labour Code Selection (signed URL, no login required) ─────────────
+// These routes are protected by HMAC signature verification, not session auth.
+// Odoo generates a time-limited signed URL that opens this page.
+Route::middleware(['odoo.signature', 'throttle:30,1'])->prefix('odoo')->name('odoo.')->group(function () {
+    Route::get('/select-labour', [LabourSelectController::class, 'show'])->name('labour-select.show');
+    Route::post('/select-labour', [LabourSelectController::class, 'submit'])->name('labour-select.submit');
 });

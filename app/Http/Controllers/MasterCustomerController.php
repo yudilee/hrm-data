@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\MasterCustomer;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class MasterCustomerController extends Controller
 {
@@ -12,7 +13,7 @@ class MasterCustomerController extends Controller
     {
         // --- Per-page (Odoo-style) ---
         $perPage = (int) $request->get('per_page', 20);
-        if (!in_array($perPage, [20, 50, 100, 200])) {
+        if (! in_array($perPage, [20, 50, 100, 200])) {
             $perPage = 20;
         }
 
@@ -21,8 +22,8 @@ class MasterCustomerController extends Controller
             ->withCount('vehicleServiceHistories as service_count')
             ->with(['vehicles' => function ($q) {
                 $q->select('id', 'primary_customer_id', 'registration_no', 'description', 'chassis_no', 'status', 'last_service_date', 'branches_visited')
-                  ->orderByDesc('last_service_date')
-                  ->limit(10);
+                    ->orderByDesc('last_service_date')
+                    ->limit(10);
             }]);
 
         // --- Filters ---
@@ -32,12 +33,12 @@ class MasterCustomerController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('id', $search)
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('telp_1', 'like', "%{$search}%")
-                  ->orWhere('telp_2', 'like', "%{$search}%")
-                  ->orWhere('company_name', 'like', "%{$search}%")
-                  ->orWhere('full_address', 'like', "%{$search}%");
+                    ->orWhere('id', $search)
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('telp_1', 'like', "%{$search}%")
+                    ->orWhere('telp_2', 'like', "%{$search}%")
+                    ->orWhere('company_name', 'like', "%{$search}%")
+                    ->orWhere('full_address', 'like', "%{$search}%");
             });
         }
 
@@ -49,11 +50,10 @@ class MasterCustomerController extends Controller
             // Match against prioritized address fields
             $query->where(function ($q) use ($request) {
                 $q->where('address_5', $request->city)
-                  ->orWhere('address_4', $request->city)
-                  ->orWhere('address_3', $request->city);
+                    ->orWhere('address_4', $request->city)
+                    ->orWhere('address_3', $request->city);
             });
         }
-
 
         if ($request->filled('vehicle_status')) {
             if ($request->vehicle_status === 'with_vehicles') {
@@ -69,10 +69,10 @@ class MasterCustomerController extends Controller
 
         if ($request->filled('quality')) {
             match ($request->quality) {
-                'high'   => $query->where('data_quality_score', '>', 60),
+                'high' => $query->where('data_quality_score', '>', 60),
                 'medium' => $query->whereBetween('data_quality_score', [21, 60]),
-                'low'    => $query->where('data_quality_score', '<=', 20),
-                default  => null,
+                'low' => $query->where('data_quality_score', '<=', 20),
+                default => null,
             };
         }
 
@@ -88,15 +88,15 @@ class MasterCustomerController extends Controller
             $years = (int) $request->visit_period;
             if (in_array($years, [1, 2, 3, 5])) {
                 $cutoff = now()->subYears($years);
-                $query->where(function($q) use ($cutoff) {
+                $query->where(function ($q) use ($cutoff) {
                     $q->whereHas('serviceHistories', function ($sq) use ($cutoff) {
                         $sq->where('DINVN', '>=', $cutoff)
-                           ->where('DINVN', '<=', now()->addYear()); // Safety check
+                            ->where('DINVN', '<=', now()->addYear()); // Safety check
                     })
-                    ->orWhereHas('vehicles', function ($vq) use ($cutoff) {
-                        $vq->where('last_service_date', '>=', $cutoff)
-                           ->where('last_service_date', '<=', now()->addYear()); // Safety check
-                    });
+                        ->orWhereHas('vehicles', function ($vq) use ($cutoff) {
+                            $vq->where('last_service_date', '>=', $cutoff)
+                                ->where('last_service_date', '<=', now()->addYear()); // Safety check
+                        });
                 });
             }
         }
@@ -114,13 +114,13 @@ class MasterCustomerController extends Controller
 
         // --- Sorting ---
         $sortField = $request->get('sort', 'name');
-        $sortDir   = $request->get('dir', 'asc');
+        $sortDir = $request->get('dir', 'asc');
 
         $allowedSorts = ['name', 'id', 'source', 'vehicles_count', 'service_count', 'email', 'telp_1', 'data_quality_score', 'date_created', 'customer_type'];
-        if (!in_array($sortField, $allowedSorts)) {
+        if (! in_array($sortField, $allowedSorts)) {
             $sortField = 'name';
         }
-        if (!in_array($sortDir, ['asc', 'desc'])) {
+        if (! in_array($sortDir, ['asc', 'desc'])) {
             $sortDir = 'asc';
         }
 
@@ -137,7 +137,7 @@ class MasterCustomerController extends Controller
         // --- Derive branches_visited per customer from their vehicles ---
         $customers->each(function ($customer) {
             $branches = collect($customer->vehicles)
-                ->flatMap(fn($v) => $v->branches_visited ?? [])
+                ->flatMap(fn ($v) => $v->branches_visited ?? [])
                 ->unique()
                 ->sort()
                 ->values()
@@ -156,14 +156,12 @@ class MasterCustomerController extends Controller
             ->distinct()
             ->orderByRaw('COALESCE(NULLIF(address_5, ""), NULLIF(address_4, ""), address_3)')
             ->pluck('city')
-            ->filter(fn($c) => 
-                strlen($c) < 25 && 
-                strlen($c) > 2 && 
-                !preg_match('/\b(RT|RW|BLOK|KAV|KM|GG|GANG|NO|JL|JALAN)\b/i', $c) &&
-                !preg_match('/[0-9]{2,}/', $c) // Exclude anything with long numbers (likely address detail)
+            ->filter(fn ($c) => strlen($c) < 25 &&
+                strlen($c) > 2 &&
+                ! preg_match('/\b(RT|RW|BLOK|KAV|KM|GG|GANG|NO|JL|JALAN)\b/i', $c) &&
+                ! preg_match('/[0-9]{2,}/', $c) // Exclude anything with long numbers (likely address detail)
             )
             ->values();
-
 
         return view('master-customers', compact('customers', 'cities', 'perPage'));
     }
@@ -172,7 +170,7 @@ class MasterCustomerController extends Controller
     {
         $customer = MasterCustomer::with([
             'vehicles',
-            'vehicleServiceHistories' => fn($q) => $q->orderByDesc('DINVN')->limit(20),
+            'vehicleServiceHistories' => fn ($q) => $q->orderByDesc('DINVN')->limit(20),
         ])->findOrFail($id);
 
         return view('master-customers-show', compact('customer'));
@@ -181,6 +179,7 @@ class MasterCustomerController extends Controller
     public function show($id)
     {
         $customer = MasterCustomer::with('vehicles')->findOrFail($id);
+
         return response()->json($customer);
     }
 }

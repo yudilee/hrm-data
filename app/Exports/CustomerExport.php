@@ -1,18 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Exports;
 
 use App\Models\MasterCustomer;
-use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class CustomerExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithTitle
+class CustomerExport implements FromCollection, WithColumnWidths, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     protected $filters;
 
@@ -29,19 +31,19 @@ class CustomerExport implements FromCollection, WithHeadings, WithMapping, WithS
     {
         $query = MasterCustomer::withCount('vehicles');
 
-        if (!empty($this->filters['search'])) {
+        if (! empty($this->filters['search'])) {
             $search = $this->filters['search'];
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('id', $search)
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('telp_1', 'like', "%{$search}%")
-                  ->orWhere('telp_2', 'like', "%{$search}%")
-                  ->orWhere('full_address', 'like', "%{$search}%");
+                    ->orWhere('id', $search)
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('telp_1', 'like', "%{$search}%")
+                    ->orWhere('telp_2', 'like', "%{$search}%")
+                    ->orWhere('full_address', 'like', "%{$search}%");
             });
         }
 
-        if (!empty($this->filters['source'])) {
+        if (! empty($this->filters['source'])) {
             $query->where('source', $this->filters['source']);
         }
 
@@ -55,15 +57,15 @@ class CustomerExport implements FromCollection, WithHeadings, WithMapping, WithS
 
             // Only group by phone if phone actually exists, otherwise each is unique
             if ($norm && $phone) {
-                $key = $norm . '|' . $phone;
+                $key = $norm.'|'.$phone;
             } else {
-                $key = 'solo_' . $customer->magic_cust; // unique key = no grouping
+                $key = 'solo_'.$customer->id; // unique key = no grouping
             }
 
-            if (!isset($groups[$key])) {
+            if (! isset($groups[$key])) {
                 $groups[$key] = [
                     'canonical' => $customer,
-                    'sources'   => [],
+                    'sources' => [],
                     'magic_ids' => [],
                     'vehicles_total' => 0,
                 ];
@@ -78,7 +80,7 @@ class CustomerExport implements FromCollection, WithHeadings, WithMapping, WithS
             if ($customer->source) {
                 $groups[$key]['sources'][] = $customer->source;
             }
-            $groups[$key]['magic_ids'][] = $customer->magic_cust;
+            $groups[$key]['magic_ids'][] = $customer->id;
             $groups[$key]['vehicles_total'] += $customer->vehicles_count;
         }
 
@@ -132,14 +134,12 @@ class CustomerExport implements FromCollection, WithHeadings, WithMapping, WithS
 
     public function styles(Worksheet $sheet)
     {
-        // Bold header row
         $sheet->getStyle('A1:K1')->applyFromArray([
-            'font' => ['bold' => true, 'size' => 11],
+            'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4338CA'],
             ],
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
         ]);
 
         // Auto-filter
@@ -166,14 +166,19 @@ class CustomerExport implements FromCollection, WithHeadings, WithMapping, WithS
 
     private function normalizePhone(?string $phone): ?string
     {
-        if (!$phone) return null;
+        if (! $phone) {
+            return null;
+        }
         // Strip everything except digits
         $digits = preg_replace('/[^0-9]/', '', $phone);
-        if (strlen($digits) < 7) return null;
+        if (strlen($digits) < 7) {
+            return null;
+        }
         // Normalize leading country code
         if (str_starts_with($digits, '62')) {
-            $digits = '0' . substr($digits, 2);
+            $digits = '0'.substr($digits, 2);
         }
+
         return $digits;
     }
 
@@ -181,13 +186,28 @@ class CustomerExport implements FromCollection, WithHeadings, WithMapping, WithS
     {
         $score = 0;
         // Prefer customer_import source
-        if (str_starts_with($c->source ?? '', 'HRM')) $score += 100;
-        if ($c->source === 'customer_import') $score += 50;
-        if ($c->email) $score += 10;
-        if ($c->telp_1) $score += 10;
-        if ($c->full_address) $score += 5;
-        if ($c->company_name) $score += 5;
-        if ($c->vehicles_count > 0) $score += $c->vehicles_count;
+        if (str_starts_with($c->source ?? '', 'HRM')) {
+            $score += 100;
+        }
+        if ($c->source === 'customer_import') {
+            $score += 50;
+        }
+        if ($c->email) {
+            $score += 10;
+        }
+        if ($c->telp_1) {
+            $score += 10;
+        }
+        if ($c->full_address) {
+            $score += 5;
+        }
+        if ($c->company_name) {
+            $score += 5;
+        }
+        if ($c->vehicles_count > 0) {
+            $score += $c->vehicles_count;
+        }
+
         return $score;
     }
 }

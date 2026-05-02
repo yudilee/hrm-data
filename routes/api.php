@@ -1,20 +1,47 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+declare(strict_types=1);
+
+use App\Http\Controllers\Api\TokenRequestController;
+use App\Http\Controllers\Api\V1\MasterDataController;
+use App\Http\Controllers\Api\V2\AuthController;
+use App\Http\Controllers\Api\V2\CustomerController;
+use App\Http\Controllers\Api\V2\SearchController;
+use App\Http\Controllers\Api\V2\ServiceHistoryController;
+use App\Http\Controllers\Api\V2\SupplierController;
+use App\Http\Controllers\Api\V2\VehicleController;
 use App\Http\Controllers\LabourCodeController;
-use App\Http\Controllers\MasterVehicleController;
 use App\Http\Controllers\MasterCustomerController;
+use App\Http\Controllers\MasterVehicleController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 
 // ──────────────────────────────────────────────────────────────
 // Health check — no auth required
 // ──────────────────────────────────────────────────────────────
-Route::get('/health', [\App\Http\Controllers\Api\V2\AuthController::class, 'health']);
+Route::get('/health', [AuthController::class, 'health']);
+
+Route::get('/health/full', function () {
+    try {
+        DB::connection()->getPdo();
+        $dbStatus = 'connected';
+    } catch (Exception $e) {
+        $dbStatus = 'error: '.$e->getMessage();
+    }
+
+    return response()->json([
+        'status' => 'ok',
+        'database' => $dbStatus,
+        'app' => config('app.name'),
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
 
 // ──────────────────────────────────────────────────────────────
 // Public: Self-service API token request (no auth)
 // ──────────────────────────────────────────────────────────────
-Route::post('/token-requests', [\App\Http\Controllers\Api\TokenRequestController::class, 'store'])
+Route::post('/token-requests', [TokenRequestController::class, 'store'])
     ->middleware('throttle:5,60');  // max 5 submissions per hour per IP
 
 // ──────────────────────────────────────────────────────────────
@@ -24,7 +51,7 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/labour-codes', [LabourCodeController::class, 'search']);
     Route::get('/vehicles', [MasterVehicleController::class, 'index']);
     Route::get('/vehicles/search', [MasterVehicleController::class, 'search']);
@@ -36,11 +63,11 @@ Route::middleware('auth:sanctum')->group(function () {
 // ──────────────────────────────────────────────────────────────
 // Odoo Bridge API v1 (kept for backward compat)
 // ──────────────────────────────────────────────────────────────
-Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
-    Route::get('/master/customers', [\App\Http\Controllers\Api\V1\MasterDataController::class, 'customers']);
-    Route::get('/master/vehicles',  [\App\Http\Controllers\Api\V1\MasterDataController::class, 'vehicles']);
-    Route::get('/history/service-records', [\App\Http\Controllers\Api\V1\MasterDataController::class, 'serviceRecords']);
-    Route::post('/sync/confirm',    [\App\Http\Controllers\Api\V1\MasterDataController::class, 'confirmSync']);
+Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(function () {
+    Route::get('/master/customers', [MasterDataController::class, 'customers']);
+    Route::get('/master/vehicles', [MasterDataController::class, 'vehicles']);
+    Route::get('/history/service-records', [MasterDataController::class, 'serviceRecords']);
+    Route::post('/sync/confirm', [MasterDataController::class, 'confirmSync']);
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -50,41 +77,41 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v2')->group(function () {
 
     // Auth info for current token
-    Route::get('/auth/me', [\App\Http\Controllers\Api\V2\AuthController::class, 'me']);
+    Route::get('/auth/me', [AuthController::class, 'me']);
 
     // Master Customers
     Route::middleware('ability:read:customers,*')->group(function () {
-        Route::get('/customers',      [\App\Http\Controllers\Api\V2\CustomerController::class, 'index']);
-        Route::get('/customers/{id}', [\App\Http\Controllers\Api\V2\CustomerController::class, 'show']);
+        Route::get('/customers', [CustomerController::class, 'index']);
+        Route::get('/customers/{id}', [CustomerController::class, 'show']);
     });
 
     // Master Vehicles
     Route::middleware('ability:read:vehicles,*')->group(function () {
-        Route::get('/vehicles',                           [\App\Http\Controllers\Api\V2\VehicleController::class, 'index']);
-        Route::get('/vehicles/{id}',                      [\App\Http\Controllers\Api\V2\VehicleController::class, 'show']);
-        Route::get('/vehicles/{id}/service-history',      [\App\Http\Controllers\Api\V2\VehicleController::class, 'serviceHistory']);
+        Route::get('/vehicles', [VehicleController::class, 'index']);
+        Route::get('/vehicles/{id}', [VehicleController::class, 'show']);
+        Route::get('/vehicles/{id}/service-history', [VehicleController::class, 'serviceHistory']);
     });
 
     // Service Histories
     Route::middleware('ability:read:service-histories,*')->group(function () {
-        Route::get('/service-histories',      [\App\Http\Controllers\Api\V2\ServiceHistoryController::class, 'index']);
-        Route::get('/service-histories/{id}', [\App\Http\Controllers\Api\V2\ServiceHistoryController::class, 'show']);
+        Route::get('/service-histories', [ServiceHistoryController::class, 'index']);
+        Route::get('/service-histories/{id}', [ServiceHistoryController::class, 'show']);
     });
 
     // Suppliers
     Route::middleware('ability:read:suppliers,*')->group(function () {
-        Route::get('/suppliers',      [\App\Http\Controllers\Api\V2\SupplierController::class, 'index']);
-        Route::get('/suppliers/{id}', [\App\Http\Controllers\Api\V2\SupplierController::class, 'show']);
+        Route::get('/suppliers', [SupplierController::class, 'index']);
+        Route::get('/suppliers/{id}', [SupplierController::class, 'show']);
     });
 
     // Labour Codes
     Route::middleware('ability:read:labour-codes,*')->group(function () {
-        Route::get('/labour-codes',      [\App\Http\Controllers\Api\V2\LabourCodeController::class, 'index']);
-        Route::get('/labour-codes/{id}', [\App\Http\Controllers\Api\V2\LabourCodeController::class, 'show']);
+        Route::get('/labour-codes', [App\Http\Controllers\Api\V2\LabourCodeController::class, 'index']);
+        Route::get('/labour-codes/{id}', [App\Http\Controllers\Api\V2\LabourCodeController::class, 'show']);
     });
 
     // Global Search
     Route::middleware('ability:search,*')->group(function () {
-        Route::get('/search', [\App\Http\Controllers\Api\V2\SearchController::class, 'search']);
+        Route::get('/search', [SearchController::class, 'search']);
     });
 });

@@ -1,14 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
+use App\Models\ServiceHistory;
+use App\Models\ServiceHistoryLabour;
+use App\Models\ServiceHistoryPart;
 use App\Models\Setting;
-use Illuminate\Http\Request;
+use App\Services\OdooService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Services\OdooService;
+use Illuminate\Support\Facades\Process;
 
 class SettingController extends Controller
 {
@@ -26,15 +34,29 @@ class SettingController extends Controller
         Setting::set('enable_pdf_watermark', $request->has('enable_pdf_watermark') ? '1' : '0');
         Setting::set('journal_paper_size', $request->input('journal_paper_size', 'A5'));
         Setting::set('odoo_deep_sync_journal', $request->has('odoo_deep_sync_journal') ? '1' : '0');
+
         return back()->with('success', 'Settings updated successfully.');
     }
 
     public function emptyDatabase()
     {
-        \App\Models\JournalLine::query()->delete();
-        \App\Models\JournalEntry::query()->delete();
-        
-        return back()->with('success', 'Database cleared successfully.');
+        if (! request()->has('confirm') || request('confirm') !== 'yes') {
+            return back()->with('error', 'Please confirm the action by typing "yes" in the confirmation field. This will permanently delete all journal data.');
+        }
+
+        AuditLog::record(
+            'truncated',
+            null,
+            ['tables' => ['service_histories', 'service_history_labours', 'service_history_parts']],
+            [],
+            'Database service records cleared by '.(Auth::user()?->name ?? 'system')
+        );
+
+        ServiceHistoryLabour::query()->delete();
+        ServiceHistoryPart::query()->delete();
+        ServiceHistory::query()->delete();
+
+        return back()->with('success', 'Database service records cleared successfully.');
     }
 
     /**
@@ -57,15 +79,15 @@ class SettingController extends Controller
         $scriptPath = base_path('../../import_data.py'); // /home/yudi/dev/rts_code/import_data.py
 
         try {
-            $result = \Illuminate\Support\Facades\Process::env([
-                'DB_HOST'     => '127.0.0.1',
-                'DB_PORT'     => env('FORWARD_DB_PORT', '3309'),
-                'DB_USER'     => env('DB_USERNAME', 'sail'),
+            $result = Process::env([
+                'DB_HOST' => '127.0.0.1',
+                'DB_PORT' => env('FORWARD_DB_PORT', '3309'),
+                'DB_USER' => env('DB_USERNAME', 'sail'),
                 'DB_PASSWORD' => env('DB_PASSWORD', 'password'),
-                'DB_NAME'     => env('DB_DATABASE', 'rts_labour_app'),
+                'DB_NAME' => env('DB_DATABASE', 'rts_labour_app'),
             ])->timeout(300)->run(['python3', $scriptPath]);
 
-            $output = $result->output() . $result->errorOutput();
+            $output = $result->output().$result->errorOutput();
             $success = str_contains($output, 'Done!') || str_contains($output, 'Successfully inserted');
 
             $count = DB::table('labour_codes')->count();
@@ -79,16 +101,16 @@ class SettingController extends Controller
             Log::error('Labour code rebuild failed', ['error' => $e->getMessage()]);
             Cache::put('labour_rebuild_status', 'error', 3600);
             Cache::put('labour_rebuild_log', $e->getMessage(), 3600);
-            Cache::put('labour_rebuild_result', 'Exception: ' . $e->getMessage(), 3600);
+            Cache::put('labour_rebuild_result', 'Exception: '.$e->getMessage(), 3600);
             Cache::put('labour_rebuild_finished_at', now()->toDateTimeString(), 3600);
         } finally {
             Cache::forget('labour_rebuild_running');
         }
 
         return response()->json([
-            'status'  => Cache::get('labour_rebuild_status'),
-            'result'  => Cache::get('labour_rebuild_result'),
-            'log'     => Cache::get('labour_rebuild_log'),
+            'status' => Cache::get('labour_rebuild_status'),
+            'result' => Cache::get('labour_rebuild_result'),
+            'log' => Cache::get('labour_rebuild_log'),
             'finished_at' => Cache::get('labour_rebuild_finished_at'),
         ]);
     }
@@ -99,12 +121,12 @@ class SettingController extends Controller
     public function rebuildStatus(): JsonResponse
     {
         return response()->json([
-            'status'       => Cache::get('labour_rebuild_status', 'idle'),
-            'running'      => (bool) Cache::get('labour_rebuild_running', false),
-            'result'       => Cache::get('labour_rebuild_result', ''),
-            'log'          => Cache::get('labour_rebuild_log', ''),
-            'started_at'   => Cache::get('labour_rebuild_started_at', ''),
-            'finished_at'  => Cache::get('labour_rebuild_finished_at', ''),
+            'status' => Cache::get('labour_rebuild_status', 'idle'),
+            'running' => (bool) Cache::get('labour_rebuild_running', false),
+            'result' => Cache::get('labour_rebuild_result', ''),
+            'log' => Cache::get('labour_rebuild_log', ''),
+            'started_at' => Cache::get('labour_rebuild_started_at', ''),
+            'finished_at' => Cache::get('labour_rebuild_finished_at', ''),
         ]);
     }
 
@@ -133,8 +155,9 @@ class SettingController extends Controller
      */
     public function testOdooConnection(): JsonResponse
     {
-        $odoo = new OdooService();
+        $odoo = new OdooService;
         $result = $odoo->testConnection();
+
         return response()->json($result);
     }
 
@@ -165,8 +188,8 @@ class SettingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $validated['enabled'] 
-                ? "Auto-sync enabled ({$validated['interval']})" 
+            'message' => $validated['enabled']
+                ? "Auto-sync enabled ({$validated['interval']})"
                 : 'Auto-sync disabled',
         ]);
     }

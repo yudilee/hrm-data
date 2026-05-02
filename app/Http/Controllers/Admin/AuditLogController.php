@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -21,7 +23,7 @@ class AuditLogController extends Controller
         }
 
         if ($request->filled('type')) {
-            $query->where('auditable_type', 'like', '%' . $request->type . '%');
+            $query->where('auditable_type', 'like', '%'.$request->type.'%');
         }
 
         if ($request->filled('from')) {
@@ -42,6 +44,7 @@ class AuditLogController extends Controller
     public function show(int $id)
     {
         $log = AuditLog::with('user')->findOrFail($id);
+
         return view('admin.audit-log-detail', compact('log'));
     }
 }

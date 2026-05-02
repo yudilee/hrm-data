@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
@@ -27,22 +29,23 @@ class ImportDmsCustomersCommand extends Command
     public function handle()
     {
         $this->info('Starting DMS Customers Import Process...');
-        
+
         $scriptPath = base_path('scripts/import_dms_customers.py');
-        
-        if (!file_exists($scriptPath)) {
+
+        if (! file_exists($scriptPath)) {
             $this->error("Python script not found at: {$scriptPath}");
+
             return Command::FAILURE;
         }
 
         $this->info("Executing Python script: {$scriptPath}");
-        
+
         $logPath = storage_path('logs/history_import.log');
-        file_put_contents($logPath, "--- Start DMS Customer Import " . now() . " ---\n");
+        file_put_contents($logPath, '--- Start DMS Customer Import '.now()." ---\n");
 
         $result = Process::env([
-            'DB_HOST'     => env('DB_HOST', 'mysql'),
-            'DB_PORT'     => env('DB_PORT', '3306'),
+            'DB_HOST' => env('DB_HOST', 'mysql'),
+            'DB_PORT' => env('DB_PORT', '3306'),
             'DB_DATABASE' => env('DB_DATABASE', 'rts_labour_app'),
             'DB_USERNAME' => env('DB_USERNAME', 'sail'),
             'DB_PASSWORD' => env('DB_PASSWORD', 'password'),
@@ -56,11 +59,13 @@ class ImportDmsCustomersCommand extends Command
         if ($result->successful()) {
             $this->info('DMS Customers Import completed successfully.');
             file_put_contents($logPath, "Process completed.\n", FILE_APPEND);
+
             return Command::SUCCESS;
         } else {
             $this->error('DMS Customers Import failed.');
             $this->error($result->errorOutput());
-            file_put_contents($logPath, "Process failed.\n" . $result->errorOutput(), FILE_APPEND);
+            file_put_contents($logPath, "Process failed.\n".$result->errorOutput(), FILE_APPEND);
+
             return Command::FAILURE;
         }
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -19,13 +21,13 @@ return new class extends Migration
             $table->string('CVCHR', 50)->nullable();
             $table->string('CPART', 50)->nullable();
             $table->string('EDESC', 100)->nullable();
-            
+
             // Increased to (15,2) for consistency and safety
             $table->decimal('QRECV', 15, 2)->default(0);
             $table->decimal('ASPPRC', 15, 2)->default(0);
             $table->decimal('AFIFO', 15, 2)->default(0);
             $table->decimal('ADISCG', 8, 2)->default(0);
-            
+
             $table->timestamps();
         });
     }

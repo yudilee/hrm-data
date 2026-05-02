@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -10,14 +12,14 @@ class CheckRole
 {
     protected array $roleHierarchy = [
         'admin' => ['admin', 'user'],
-        'user'  => ['user'],
+        'user' => ['user'],
     ];
 
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login')->with('error', 'Please login to access this page.');
         }
 
@@ -34,8 +36,11 @@ class CheckRole
 
     protected function userHasRole(string $userRole, string $requiredRole): bool
     {
-        if ($userRole === $requiredRole) return true;
+        if ($userRole === $requiredRole) {
+            return true;
+        }
         $allowedRoles = $this->roleHierarchy[$userRole] ?? ['user'];
+
         return in_array($requiredRole, $allowedRoles);
     }
 }

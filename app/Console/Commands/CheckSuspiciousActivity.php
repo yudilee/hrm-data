@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\ApiAccessLog;
@@ -12,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 class CheckSuspiciousActivity extends Command
 {
     protected $signature = 'security:check-activity';
+
     protected $description = 'Check for suspicious login or API activity and notify admins';
 
     public function handle(): int
@@ -36,6 +39,7 @@ class CheckSuspiciousActivity extends Command
         foreach ($suspicious as $row) {
             $msg = "Brute-force detected from IP {$row->ip_address}: {$row->attempts} failed logins in 15 min.";
             Log::channel('security')->critical($msg);
+            Log::critical($msg, ['ip' => $row->ip_address, 'attempts' => $row->attempts]);
 
             AppNotification::notifyAdmins(
                 'brute_force',
@@ -59,6 +63,7 @@ class CheckSuspiciousActivity extends Command
         foreach ($suspicious as $row) {
             $msg = "Excessive API failures from IP {$row->ip_address}: {$row->attempts} errors in 10 min.";
             Log::channel('security')->warning($msg);
+            Log::warning($msg, ['ip' => $row->ip_address, 'attempts' => $row->attempts]);
 
             // Deduplicate: only notify once per hour per IP
             $alreadyNotified = AppNotification::where('type', 'api_abuse')
@@ -66,7 +71,7 @@ class CheckSuspiciousActivity extends Command
                 ->where('body', 'like', "%{$row->ip_address}%")
                 ->exists();
 
-            if (!$alreadyNotified) {
+            if (! $alreadyNotified) {
                 AppNotification::notifyAdmins(
                     'api_abuse',
                     '⚠️ Excessive API Errors',
@@ -89,7 +94,7 @@ class CheckSuspiciousActivity extends Command
                 ->where('created_at', '>=', now()->subDay())
                 ->exists();
 
-            if (!$alreadyNotified) {
+            if (! $alreadyNotified) {
                 AppNotification::notifyAdmins(
                     'pending_token_requests',
                     '📬 Pending API Token Requests',

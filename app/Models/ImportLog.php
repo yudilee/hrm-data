@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -24,8 +26,8 @@ class ImportLog extends Model
     ];
 
     protected $casts = [
-        'meta'         => 'array',
-        'started_at'   => 'datetime',
+        'meta' => 'array',
+        'started_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
 
@@ -35,11 +37,11 @@ class ImportLog extends Model
     public static function start(string $importType, ?int $total = null, ?string $triggeredBy = 'system'): static
     {
         return static::create([
-            'import_type'    => $importType,
-            'status'         => 'running',
-            'total_records'  => $total,
-            'triggered_by'   => $triggeredBy,
-            'started_at'     => now(),
+            'import_type' => $importType,
+            'status' => 'running',
+            'total_records' => $total,
+            'triggered_by' => $triggeredBy,
+            'started_at' => now(),
         ]);
     }
 
@@ -49,8 +51,8 @@ class ImportLog extends Model
     public function complete(array $meta = []): void
     {
         $this->update([
-            'status'       => 'completed',
-            'meta'         => $meta,
+            'status' => 'completed',
+            'meta' => $meta,
             'completed_at' => now(),
         ]);
     }
@@ -61,9 +63,9 @@ class ImportLog extends Model
     public function fail(string $errorMessage): void
     {
         $this->update([
-            'status'        => 'failed',
+            'status' => 'failed',
             'error_message' => $errorMessage,
-            'completed_at'  => now(),
+            'completed_at' => now(),
         ]);
     }
 
@@ -74,7 +76,7 @@ class ImportLog extends Model
     {
         $this->update([
             'processed_records' => $processed,
-            'failed_records'    => $failed,
+            'failed_records' => $failed,
         ]);
     }
 
@@ -84,6 +86,7 @@ class ImportLog extends Model
     public function getElapsedAttribute(): float
     {
         $end = $this->completed_at ?? now();
+
         return $this->started_at ? $end->diffInSeconds($this->started_at) : 0;
     }
 
@@ -92,7 +95,10 @@ class ImportLog extends Model
      */
     public function getProgressPercentAttribute(): int
     {
-        if (!$this->total_records || $this->total_records === 0) return 0;
+        if (! $this->total_records || $this->total_records === 0) {
+            return 0;
+        }
+
         return min(100, (int) (($this->processed_records / $this->total_records) * 100));
     }
 }

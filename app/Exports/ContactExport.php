@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Exports;
 
 use Illuminate\Support\Facades\DB;
@@ -25,7 +27,7 @@ class ContactExport implements WithMultipleSheets
                 DB::raw("'' as zip"),
                 'telp_1 as phone',
                 'telp_2 as mobile',
-                'email'
+                'email',
             ])->orderBy('name');
 
         $sheets[] = new ContactSheetExport($customerQuery, 'Customers', 'customer');
@@ -41,7 +43,7 @@ class ContactExport implements WithMultipleSheets
                 'postal_code as zip',
                 'phone',
                 DB::raw("'' as mobile"),
-                'email'
+                'email',
             ])->orderBy('name');
 
         $sheets[] = new ContactSheetExport($supplierQuery, 'Vendors', 'supplier');

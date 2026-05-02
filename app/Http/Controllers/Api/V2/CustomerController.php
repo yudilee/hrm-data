@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
@@ -29,7 +31,7 @@ class CustomerController extends Controller
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(fn($q) => $q
+            $query->where(fn ($q) => $q
                 ->where('name', 'like', "%$s%")
                 ->orWhere('email', 'like', "%$s%")
                 ->orWhere('telp_1', 'like', "%$s%")
@@ -44,7 +46,7 @@ class CustomerController extends Controller
 
         if ($request->filled('city')) {
             $city = $request->city;
-            $query->where(fn($q) => $q
+            $query->where(fn ($q) => $q
                 ->where('address_5', $city)
                 ->orWhere('address_4', $city)
                 ->orWhere('address_3', $city)
@@ -60,9 +62,9 @@ class CustomerController extends Controller
         }
 
         $allowed = ['name', 'id', 'email', 'date_created', 'vehicles_count', 'data_quality_score'];
-        $sort      = in_array($request->sort, $allowed) ? $request->sort : 'name';
+        $sort = in_array($request->sort, $allowed) ? $request->sort : 'name';
         $direction = $request->direction === 'desc' ? 'desc' : 'asc';
-        $perPage   = min((int) $request->get('per_page', 50), 200);
+        $perPage = min((int) $request->get('per_page', 50), 200);
 
         $query->orderBy($sort, $direction);
 
@@ -75,6 +77,7 @@ class CustomerController extends Controller
     public function show(int $id)
     {
         $customer = MasterCustomer::with('vehicles')->findOrFail($id);
+
         return new CustomerResource($customer);
     }
 }

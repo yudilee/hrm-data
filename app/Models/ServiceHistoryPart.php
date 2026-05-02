@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -9,8 +11,8 @@ class ServiceHistoryPart extends Model
     protected $table = 'service_history_parts';
 
     protected $fillable = [
-        'service_history_id', 'CJOBN', 'CINVN', 'CVCHR', 
-        'CPART', 'EDESC', 'QRECV', 'ASPPRC', 'AFIFO', 'ADISCG'
+        'service_history_id', 'CJOBN', 'CINVN', 'CVCHR',
+        'CPART', 'EDESC', 'QRECV', 'ASPPRC', 'AFIFO', 'ADISCG',
     ];
 
     public function history()

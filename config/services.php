@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
 
     /*
@@ -33,6 +35,25 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Odoo Integration
+    |--------------------------------------------------------------------------
+    |
+    | Security credentials for the Odoo ↔ RTS labour code integration.
+    | - shared_secret: HMAC key for verifying signed launch URLs from Odoo
+    | - webhook_secret: HMAC key for signing webhook callbacks to Odoo
+    | - allowed_callback_hosts: comma-separated list of allowed Odoo domains
+    | - url_expiry_seconds: how long a signed launch URL remains valid
+    |
+    */
+    'odoo' => [
+        'shared_secret' => env('ODOO_SHARED_SECRET'),
+        'webhook_secret' => env('ODOO_WEBHOOK_SECRET'),
+        'allowed_callback_hosts' => array_filter(explode(',', env('ODOO_ALLOWED_CALLBACK_HOSTS', ''))),
+        'url_expiry_seconds' => (int) env('ODOO_URL_EXPIRY_SECONDS', 300),
     ],
 
 ];
