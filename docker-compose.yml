@@ -22,6 +22,10 @@ services:
       - APP_KEY=${APP_KEY}
       - DB_USERNAME=${DB_USERNAME:-root}
       - DB_PASSWORD=${DB_PASSWORD:-}
+      - ODOO_SHARED_SECRET=${ODOO_SHARED_SECRET}
+      - ODOO_WEBHOOK_SECRET=${ODOO_WEBHOOK_SECRET}
+      - ODOO_ALLOWED_CALLBACK_HOSTS=${ODOO_ALLOWED_CALLBACK_HOSTS}
+      - ODOO_URL_EXPIRY_SECONDS=${ODOO_URL_EXPIRY_SECONDS:-300}
     volumes:
       - public-assets:/var/www/html/public
       - storage-data:/var/www/html/storage
