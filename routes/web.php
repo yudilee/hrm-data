@@ -176,9 +176,11 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ── Odoo Labour Code Selection (signed URL, no login required) ─────────────
-// These routes are protected by HMAC signature verification, not session auth.
-// Odoo generates a time-limited signed URL that opens this page.
+// GET is protected by HMAC signature verification (Odoo-signed URL).
+// POST (form submission) uses standard CSRF protection — no Odoo signature needed.
 Route::middleware(['odoo.signature', 'throttle:30,1'])->prefix('odoo')->name('odoo.')->group(function () {
     Route::get('/select-labour', [LabourSelectController::class, 'show'])->name('labour-select.show');
+});
+Route::middleware(['throttle:30,1'])->prefix('odoo')->name('odoo.')->group(function () {
     Route::post('/select-labour', [LabourSelectController::class, 'submit'])->name('labour-select.submit');
 });
