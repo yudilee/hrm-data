@@ -74,12 +74,13 @@ class LabourSelectController extends Controller
         $allowedHosts = config('services.odoo.allowed_callback_hosts', []);
 
         if (! empty($allowedHosts) && ! in_array($callbackHost, $allowedHosts, true)) {
+            $debugInfo = "Blocked Host: '$callbackHost'. Allowed: [" . implode(', ', $allowedHosts) . "]";
             Log::channel('security')->warning('Odoo callback: blocked non-allowlisted host', [
                 'host' => $callbackHost,
                 'allowed' => $allowedHosts,
                 'ip' => $request->ip(),
             ]);
-            abort(403, 'Callback URL domain is not in the allowlist.');
+            abort(403, "Callback URL domain is not in the allowlist. ($debugInfo)");
         }
 
         // Fetch the selected labour codes
