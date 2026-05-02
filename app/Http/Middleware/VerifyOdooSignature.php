@@ -60,9 +60,11 @@ class VerifyOdooSignature
             abort(403, 'Invalid signature. This request may have been tampered with.');
         }
 
-        // 3. Check nonce not reused (prevent replay attacks)
+        // 3. Check nonce not reused (prevent replay attacks on launch)
+        // We only enforce this on GET requests so that the subsequent POST submission 
+        // can use the same signed parameters without being blocked as a "replay".
         $nonce = $request->input('nonce', '');
-        if (! empty($nonce)) {
+        if ($request->isMethod('get') && ! empty($nonce)) {
             $nonceKey = 'odoo_nonce:' . $nonce;
             if (Cache::has($nonceKey)) {
                 Log::channel('security')->warning('Odoo signed URL: nonce replay attempt', [
