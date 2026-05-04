@@ -204,84 +204,108 @@
 
             {{-- Invoice Detail --}}
             <div x-show="open" x-collapse>
-                <div class="p-6 space-y-6">
+                <div class="p-5">
 
-                    {{-- Labour Lines --}}
-                    @if($history->labours->isNotEmpty())
-                    <div>
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/></svg>
-                            Labour Lines ({{ $history->labours->count() }})
-                        </h4>
-                        <div class="overflow-x-auto rounded-xl border border-slate-200">
-                            <table class="w-full text-sm">
-                                <thead>
-                                    <tr class="bg-slate-50 text-left">
-                                        <th class="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase">Job Code</th>
-                                        <th class="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase">Description</th>
-                                        <th class="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase text-right">Hours</th>
-                                        <th class="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase text-right">Net</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    @foreach($history->labours as $labour)
-                                    <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="px-4 py-2.5 font-mono text-xs font-bold text-indigo-600">{{ $labour->CDJOB }}</td>
-                                        <td class="px-4 py-2.5 text-slate-700">
-                                            @if($search)
-                                                {!! preg_replace('/(' . preg_quote($search, '/') . ')/i', '<span class="highlight-match">$1</span>', e($labour->EMJOB)) !!}
-                                            @else
-                                                {{ $labour->EMJOB }}
-                                            @endif
-                                        </td>
-                                        <td class="px-4 py-2.5 text-right font-mono text-slate-600">{{ $labour->QHOUR ? number_format((float)$labour->QHOUR, 2) : '-' }}</td>
-                                        <td class="px-4 py-2.5 text-right font-mono text-slate-600">{{ $labour->NET ? number_format((float)$labour->NET, 0, ',', '.') : '-' }}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                    {{-- Side-by-side: Labour left, Parts right --}}
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+
+                        {{-- Labour Detail --}}
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/></svg>
+                                Labour Detail Invoice : <span class="font-mono text-indigo-600">{{ $history->CINVN }}</span>
+                            </h4>
+                            <div class="overflow-x-auto rounded-xl border border-slate-200">
+                                <table class="w-full text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-50 text-left border-b border-slate-200">
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase w-8">No.</th>
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase">Description</th>
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase text-right">T.Allowed</th>
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase text-right">Net Value</th>
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase text-right">T.Taken</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        @forelse($history->labours as $i => $labour)
+                                        <tr class="hover:bg-slate-50/70 transition-colors">
+                                            <td class="px-3 py-2 text-slate-400">{{ $i + 1 }}</td>
+                                            <td class="px-3 py-2">
+                                                @if($labour->CDJOB && !in_array($labour->CDJOB, ['CUSTOMER','NOTES','SUN','NOTE']))
+                                                    <span class="font-mono font-bold text-indigo-500 block text-[10px]">{{ $labour->CDJOB }}</span>
+                                                @elseif($labour->CDJOB)
+                                                    <span class="font-bold text-purple-500 block text-[10px]">{{ $labour->CDJOB }}</span>
+                                                @endif
+                                                <span class="text-slate-700">
+                                                    @if($search)
+                                                        {!! preg_replace('/(' . preg_quote($search, '/') . ')/i', '<span class="highlight-match">$1</span>', e($labour->EMJOB)) !!}
+                                                    @else
+                                                        {{ $labour->EMJOB }}
+                                                    @endif
+                                                </span>
+                                            </td>
+                                            <td class="px-3 py-2 text-right font-mono text-slate-600">{{ $labour->QHOUR !== null ? number_format((float)$labour->QHOUR, 2) : '0.00' }}</td>
+                                            <td class="px-3 py-2 text-right font-mono text-slate-600">{{ $labour->NET ? number_format((float)$labour->NET, 0, ',', '.') : '0' }}</td>
+                                            <td class="px-3 py-2 text-right font-mono text-slate-600">{{ $labour->TAKEN !== null ? number_format((float)$labour->TAKEN, 2) : '0.00' }}</td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="5" class="px-3 py-4 text-center text-slate-400 italic">No labour records</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                    @endif
 
-                    {{-- Parts Lines --}}
-                    @if($history->parts->isNotEmpty())
-                    <div>
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                            Parts Used ({{ $history->parts->count() }})
-                        </h4>
-                        <div class="overflow-x-auto rounded-xl border border-slate-200">
-                            <table class="w-full text-sm">
-                                <thead>
-                                    <tr class="bg-slate-50 text-left">
-                                        <th class="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase">Part Code</th>
-                                        <th class="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase">Description</th>
-                                        <th class="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase text-right">Qty</th>
-                                        <th class="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase text-right">Price</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    @foreach($history->parts as $part)
-                                    <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="px-4 py-2.5 font-mono text-xs font-bold text-amber-600">{{ $part->CPART }}</td>
-                                        <td class="px-4 py-2.5 text-slate-700">
-                                            @if($search)
-                                                {!! preg_replace('/(' . preg_quote($search, '/') . ')/i', '<span class="highlight-match">$1</span>', e($part->EDESC)) !!}
-                                            @else
-                                                {{ $part->EDESC }}
-                                            @endif
-                                        </td>
-                                        <td class="px-4 py-2.5 text-right font-mono text-slate-600">{{ $part->QRECV ?? 1 }}</td>
-                                        <td class="px-4 py-2.5 text-right font-mono text-slate-600">{{ $part->ASPPRC ? number_format((float)$part->ASPPRC, 0, ',', '.') : '-' }}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                        {{-- Sparepart Detail --}}
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                Sparepart Detail Invoice : <span class="font-mono text-amber-600">{{ $history->CINVN }}</span>
+                            </h4>
+                            <div class="overflow-x-auto rounded-xl border border-slate-200">
+                                <table class="w-full text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-50 text-left border-b border-slate-200">
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase w-8">No.</th>
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase">Part Number</th>
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase">Description</th>
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase text-right">Qty</th>
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase text-right">Price/pcs</th>
+                                            <th class="px-3 py-2 font-bold text-slate-400 uppercase text-right">Net Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        @forelse($history->parts as $i => $part)
+                                        <tr class="hover:bg-slate-50/70 transition-colors">
+                                            <td class="px-3 py-2 text-slate-400">{{ $i + 1 }}</td>
+                                            <td class="px-3 py-2 font-mono font-bold text-amber-500 text-[10px]">{{ $part->CPART }}</td>
+                                            <td class="px-3 py-2 text-slate-700">
+                                                @if($search)
+                                                    {!! preg_replace('/(' . preg_quote($search, '/') . ')/i', '<span class="highlight-match">$1</span>', e($part->EDESC)) !!}
+                                                @else
+                                                    {{ $part->EDESC }}
+                                                @endif
+                                            </td>
+                                            <td class="px-3 py-2 text-right font-mono text-slate-600">{{ number_format((float)($part->QRECV ?? 1), 2) }}</td>
+                                            <td class="px-3 py-2 text-right font-mono text-slate-600">{{ $part->ASPPRC ? number_format((float)$part->ASPPRC, 0, ',', '.') : '0' }}</td>
+                                            <td class="px-3 py-2 text-right font-mono text-slate-600">
+                                                @php $net = (float)($part->ASPPRC ?? 0) * (float)($part->QRECV ?? 1); @endphp
+                                                {{ $net > 0 ? number_format($net, 0, ',', '.') : '0' }}
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="6" class="px-3 py-4 text-center text-slate-400 italic">No parts recorded</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                    @endif
 
+                    </div>{{-- end grid --}}
                 </div>
             </div>
         </div>
