@@ -604,9 +604,9 @@ This feature allows Odoo users to view a vehicle's **complete service history** 
 │     "View History"  │         │                      │
 │                     │  ──2──► │  3. Verify signature  │
 │  Generate signed URL│  HTTPS  │  4. Lookup vehicle    │
-│  Open in new tab    │         │  5. Show full service │
-│                     │         │     history with      │
-│                     │         │     labours & parts   │
+│  Open in new tab    │         │  5. Show Interactive  │
+│                     │         │     Master-Detail View│
+│                     │         │     (Labour & Parts)  │
 └─────────────────────┘         └─────────────────────┘
 ```
 
@@ -677,10 +677,12 @@ def action_view_service_history(self):
 
 ### Features
 
-- **Keyword Search:** Users can search terms like "ban", "wiper", "oli" to filter service history by matching labour descriptions and part names. Matching text is highlighted in the results.
-- **CSV Export:** Users can download the displayed service history as a CSV file.
-- **Expandable Cards:** Each service invoice is displayed as an expandable card with labour and parts tables.
-- **Summary Stats:** Shows total visits, total labours, total parts, and date range at a glance.
+- **Master-Detail Layout:** A summary table shows all invoices. Clicking a row instantly displays the detailed labour and sparepart tables for that specific invoice in a side-by-side view.
+- **Instant Keyword Search:** Users can search terms like "ban", "wiper", "oli". Searching is performed client-side (Alpine.js) for maximum performance and avoids signature expiration/403 errors.
+- **Visual Highlighting:** Matching search terms are highlighted in yellow within descriptions.
+- **CSV Export:** The currently viewed service history (including search filters) can be downloaded as a CSV.
+- **Side-by-Side Comparison:** Labour details and Sparepart details are shown in a two-column grid for easier audit and parity with legacy reports.
+- **Summary Dashboard:** Provides total service visits, total labour count, total parts count, and date range at the top.
 
 ### XML View
 
