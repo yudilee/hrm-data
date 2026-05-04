@@ -25,6 +25,7 @@ use App\Http\Controllers\ServiceHistoryController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\User\ApiTokenController;
 use App\Http\Controllers\Odoo\LabourSelectController;
+use App\Http\Controllers\Odoo\ServiceHistoryViewController;
 use Illuminate\Support\Facades\Route;
 
 // ──────────────────────────────────────────────
@@ -180,7 +181,9 @@ Route::middleware(['auth'])->group(function () {
 // POST (form submission) uses standard CSRF protection — no Odoo signature needed.
 Route::middleware(['odoo.signature', 'throttle:30,1'])->prefix('odoo')->name('odoo.')->group(function () {
     Route::get('/select-labour', [LabourSelectController::class, 'show'])->name('labour-select.show');
+    Route::get('/service-history', [ServiceHistoryViewController::class, 'show'])->name('service-history.show');
 });
 Route::middleware(['throttle:30,1'])->prefix('odoo')->name('odoo.')->group(function () {
     Route::post('/select-labour', [LabourSelectController::class, 'submit'])->name('labour-select.submit');
+    Route::post('/service-history/export', [ServiceHistoryViewController::class, 'export'])->name('service-history.export');
 });

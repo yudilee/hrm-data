@@ -15,9 +15,10 @@
 5. [Generating Signed URLs](#generating-signed-urls)
 6. [Receiving Webhook Callbacks](#receiving-webhook-callbacks)
 7. [Odoo Module Implementation](#odoo-module-implementation)
-8. [Testing & Debugging](#testing--debugging)
-9. [Error Handling](#error-handling)
-10. [API Reference](#api-reference)
+8. [Service History Viewer](#service-history-viewer)
+9. [Testing & Debugging](#testing--debugging)
+10. [Error Handling](#error-handling)
+11. [API Reference](#api-reference)
 
 ---
 
@@ -588,6 +589,111 @@ class RepairOrder(models.Model):
 
 ---
 
+## Service History Viewer
+
+This feature allows Odoo users to view a vehicle's **complete service history** from the RTS Master Data Hub by entering a chassis number. Unlike the labour code selection flow, this is **read-only** — no webhook callback is needed.
+
+### Architecture
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│      ODOO           │         │    RTS APP           │
+│  (Your System)      │         │  (Master Data Hub)   │
+│                     │         │                      │
+│  1. User clicks     │         │                      │
+│     "View History"  │         │                      │
+│                     │  ──2──► │  3. Verify signature  │
+│  Generate signed URL│  HTTPS  │  4. Lookup vehicle    │
+│  Open in new tab    │         │  5. Show full service │
+│                     │         │     history with      │
+│                     │         │     labours & parts   │
+└─────────────────────┘         └─────────────────────┘
+```
+
+### URL Parameters (Simplified)
+
+Since this is read-only, the signed URL only needs:
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `chassis` | string | ✅ | Vehicle chassis number |
+| `exp` | string | ✅ | Unix timestamp when URL expires |
+| `nonce` | string | ✅ | Random unique string (prevents replay) |
+| `sig` | string | ✅ | HMAC-SHA256 signature |
+
+> **Note:** `callback_url`, `job_order_id`, and `job_number` are NOT required for this endpoint.
+
+### Python Implementation (Odoo Side)
+
+```python
+def generate_rts_history_url(chassis_no):
+    """
+    Generate an HMAC-signed URL to view service history.
+    
+    Args:
+        chassis_no: Vehicle chassis number (min 6 chars, ideally 17)
+    
+    Returns:
+        str: Complete signed URL to open in browser
+    """
+    ICP = self.env['ir.config_parameter'].sudo()
+    base_url = ICP.get_param('rts.base_url', '').rstrip('/')
+    shared_secret = ICP.get_param('rts.shared_secret', '')
+    
+    params = {
+        'chassis': str(chassis_no).upper(),
+        'exp': str(int(time.time()) + 300),  # 5 minute expiry
+        'nonce': hashlib.md5(os.urandom(16)).hexdigest(),
+    }
+    
+    sorted_msg = '&'.join(f"{k}={v}" for k, v in sorted(params.items()))
+    sig = hmac.new(
+        shared_secret.encode('utf-8'),
+        sorted_msg.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    params['sig'] = sig
+    
+    return f"{base_url}/odoo/service-history?{urllib.parse.urlencode(params)}"
+```
+
+### Odoo Module — Button on Vehicle/Job Order Form
+
+```python
+def action_view_service_history(self):
+    """Open RTS service history viewer in a new browser tab."""
+    self.ensure_one()
+    if not self.chassis_no or len(self.chassis_no) < 6:
+        raise UserError(
+            "Please enter a valid chassis number (min 6 characters)."
+        )
+    url = self._generate_rts_history_url(self.chassis_no)
+    return {
+        'type': 'ir.actions.act_url',
+        'url': url,
+        'target': 'new',
+    }
+```
+
+### Features
+
+- **Keyword Search:** Users can search terms like "ban", "wiper", "oli" to filter service history by matching labour descriptions and part names. Matching text is highlighted in the results.
+- **CSV Export:** Users can download the displayed service history as a CSV file.
+- **Expandable Cards:** Each service invoice is displayed as an expandable card with labour and parts tables.
+- **Summary Stats:** Shows total visits, total labours, total parts, and date range at a glance.
+
+### XML View
+
+```xml
+<button name="action_view_service_history"
+        type="object"
+        string="View Service History (RTS)"
+        class="btn-secondary"
+        icon="fa-history"/>
+```
+
+---
+
 ## Testing & Debugging
 
 ### Step 1: Verify Secrets Match
@@ -774,7 +880,10 @@ ODOO SIDE:
   
   4. Webhook endpoint: POST /rts/labour-callback → verifies sig, creates lines
 
+  5. Service History: calls action_view_service_history() → opens signed URL (read-only)
+
 RTS SIDE (already implemented):
-  - GET  /odoo/select-labour  → shows selection UI
-  - POST /odoo/select-labour  → sends selected codes to Odoo callback
+  - GET  /odoo/select-labour    → shows labour selection UI
+  - POST /odoo/select-labour    → sends selected codes to Odoo callback
+  - GET  /odoo/service-history  → shows service history viewer (read-only)
 ```
